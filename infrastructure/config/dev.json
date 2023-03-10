@@ -1,0 +1,13 @@
+{
+  "envName": "dev2",
+  "account": "341450653870",
+  "region": "us-east-1",
+  "apiDomainCertificateArn": "arn:aws:acm:us-east-1:341450653870:certificate/8df2b6ee-0cac-496e-bbcf-da6bf61e8b2f",
+  "rootDomain": "fameorbit.com",
+  "apiSubdomain": "api",
+  "userPoolArn": "arn:aws:cognito-idp:us-east-1:341450653870:userpool/us-east-1_OL1w4ne45",
+  "basePath": "task",
+  "authenticatedRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-profileCognitoIdCognitoDefaul-DYBFDAZT2AEB",
+  "unauthenticatedRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-profileCognitoIdCognitoDefaul-9HX6UW6UNOB3",
+  "adminRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-profileCognitoIdCognitoAdminR-8Z59JY2YHY9H"
+}
