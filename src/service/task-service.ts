@@ -39,7 +39,7 @@ export class TaskService {
             .query({
                 TableName: this.props.table,
                 IndexName: 'userIdIndex',
-                ProjectionExpression: 'id, country, state, city, userId, ' +
+                ProjectionExpression: 'id, country, stateProvince, city, userId, ' +
                     'price, priceUnit, category, description, status, photos',
                 KeyConditionExpression: 'userId <> :userId',
                 ExpressionAttributeValues : {':userId' : userId}

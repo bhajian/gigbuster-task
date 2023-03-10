@@ -33,9 +33,9 @@ export interface TaskEntity {
     photos: [PhotoEntry]
     location: Location
     city: string
-    state: string
+    stateProvince: string
     country: string
     distance: number
     price: number,
-    priceUnity: string
+    priceUnit: string
 }
