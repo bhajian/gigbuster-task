@@ -316,6 +316,7 @@ export class TaskApis extends GenericApi {
         })
 
         props.table.grantFullAccess(this.listApi.grantPrincipal)
+        props.table.grantFullAccess(this.queryApi.grantPrincipal)
         props.table.grantFullAccess(this.getApi.grantPrincipal)
         props.table.grantFullAccess(this.postApi.grantPrincipal)
         props.table.grantFullAccess(this.putApi.grantPrincipal)

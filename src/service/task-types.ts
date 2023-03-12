@@ -8,6 +8,7 @@ export interface PhotoEntry {
     bucket?: string
     key?: string
     type?: string
+    identityId: string
 }
 
 export interface Location {
@@ -19,12 +20,13 @@ export interface Location {
 export interface Applicant {
     userId: string
     appliedDateTime: string
-    status: string
+    applicationStatus: string
 }
 export interface TaskEntity {
     id: string
+    title: string
     userId: string
-    status: string
+    taskStatus: string
     category: string
     description: string
     createdDateTime: string

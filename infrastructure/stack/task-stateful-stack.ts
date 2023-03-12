@@ -36,17 +36,17 @@ export class TaskStatefulStack extends Stack {
             primaryKey: 'id',
             keyType: AttributeType.STRING
         })
-        this.dynamodbTable.addSecondaryIndexes({
+        this.dynamodbTable.addGlobalSecondaryIndexes({
             indexName: 'userIdIndex',
             partitionKeyName: 'userId',
             partitionKeyType: AttributeType.STRING,
         })
-        this.dynamodbTable.addSecondaryIndexes({
+        this.dynamodbTable.addGlobalSecondaryIndexes({
             indexName: 'categoryIndex',
             partitionKeyName: 'category',
             partitionKeyType: AttributeType.STRING,
         })
-        this.dynamodbTable.addSecondaryIndexes({
+        this.dynamodbTable.addGlobalSecondaryIndexes({
             indexName: 'locationIndex',
             partitionKeyName: 'city',
             partitionKeyType: AttributeType.STRING,

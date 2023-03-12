@@ -22,6 +22,12 @@ export interface SecondaryIndexProp {
     sortKeyType?: AttributeType
 }
 
+export interface LocalSecondaryIndexProp {
+    indexName: string
+    sortKeyName: string
+    sortKeyType: AttributeType
+}
+
 export class GenericDynamoTable extends Construct {
 
     public table: Table;
@@ -46,7 +52,7 @@ export class GenericDynamoTable extends Construct {
         })
     }
 
-    public addSecondaryIndexes(props: SecondaryIndexProp){
+    public addGlobalSecondaryIndexes(props: SecondaryIndexProp){
         this.table.addGlobalSecondaryIndex({
             indexName: props.indexName,
             partitionKey: {
@@ -57,6 +63,18 @@ export class GenericDynamoTable extends Construct {
                 name: props.sortKeyName,
                 type: props.sortKeyType,
             } : undefined
+        })
+    }
+
+    public addLocalSecondaryIndexes(props: LocalSecondaryIndexProp){
+        this.table.addLocalSecondaryIndex({
+            indexName: props.indexName,
+            nonKeyAttributes: [],
+            projectionType: undefined,
+            sortKey: {
+                name: props.sortKeyName,
+                type: props.sortKeyType,
+            }
         })
     }
 

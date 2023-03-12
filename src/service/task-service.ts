@@ -36,12 +36,12 @@ export class TaskService {
 
     async query(userId: string): Promise<TaskEntity[]> {
         const response = await this.documentClient
-            .query({
+            .scan({
                 TableName: this.props.table,
                 IndexName: 'userIdIndex',
                 ProjectionExpression: 'id, country, stateProvince, city, userId, ' +
-                    'price, priceUnit, category, description, status, photos',
-                KeyConditionExpression: 'userId <> :userId',
+                    'price, priceUnit, category, description, taskStatus, photos',
+                FilterExpression: 'userId <> :userId',
                 ExpressionAttributeValues : {':userId' : userId}
             }).promise()
         if (response.Items === undefined) {
@@ -64,6 +64,7 @@ export class TaskService {
     async create(params: TaskEntity): Promise<TaskEntity> {
         const now = new Date().toISOString()
         params.id = uuidv4()
+        params.taskStatus = 'active'
         params.createdDateTime = now
         await this.documentClient
             .put({
@@ -241,7 +242,8 @@ export class TaskService {
             photoId: photoId,
             bucket: this.props.bucket,
             key: `${params.id}/photos/${photoId}`,
-            type: photoParams.type
+            type: photoParams.type,
+            identityId: photoParams.identityId
         }
         const response = await this.documentClient
             .get({
