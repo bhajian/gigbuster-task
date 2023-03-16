@@ -30,6 +30,7 @@ export interface TaskApiProps {
     idResource: IResource,
     photoResource: IResource
     photoIdResource: IResource
+    applicantResource: IResource
     applyResource: IResource
     withdrawResource: IResource
     acceptResource: IResource
@@ -44,6 +45,7 @@ export class TaskApis extends GenericApi {
     private putApi: NodejsFunction
     private deleteApi: NodejsFunction
     private applyApi: NodejsFunction
+    private listApplicantApi: NodejsFunction
     private withdrawApi: NodejsFunction
     private acceptApi: NodejsFunction
     private rejectApi: NodejsFunction
@@ -78,6 +80,7 @@ export class TaskApis extends GenericApi {
 
         const idResource = this.api.root.addResource('{id}')
         const queryResource = this.api.root.addResource('query')
+        const applicantResource = idResource.addResource('applicant')
         const applyResource = idResource.addResource('apply')
         const withdrawResource = idResource.addResource('withdraw')
         const acceptResource = idResource.addResource('accept')
@@ -88,6 +91,7 @@ export class TaskApis extends GenericApi {
         this.initializeTaskApis({
             acceptResource: acceptResource,
             applyResource: applyResource,
+            applicantResource: applicantResource,
             rejectResource: rejectResource,
             withdrawResource: withdrawResource,
             photoResource: photoResource,
@@ -178,6 +182,20 @@ export class TaskApis extends GenericApi {
             handlerName: 'task-delete-handler.ts',
             verb: 'DELETE',
             resource: props.idResource,
+            environment: {
+                TABLE: props.table.tableName,
+                IMAGE_BUCKET: props.bucket.bucketName
+            },
+            validateRequestBody: false,
+            authorizationType: AuthorizationType.COGNITO,
+            authorizer: props.authorizer
+        })
+
+        this.listApplicantApi = this.addMethod({
+            functionName: 'task-list-applicant',
+            handlerName: 'task-list-applicant-handler.ts',
+            verb: 'GET',
+            resource: props.applicantResource,
             environment: {
                 TABLE: props.table.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
@@ -321,6 +339,7 @@ export class TaskApis extends GenericApi {
         props.table.grantFullAccess(this.postApi.grantPrincipal)
         props.table.grantFullAccess(this.putApi.grantPrincipal)
         props.table.grantFullAccess(this.deleteApi.grantPrincipal)
+        props.table.grantFullAccess(this.listApplicantApi.grantPrincipal)
         props.table.grantFullAccess(this.applyApi.grantPrincipal)
         props.table.grantFullAccess(this.withdrawApi.grantPrincipal)
         props.table.grantFullAccess(this.acceptApi.grantPrincipal)

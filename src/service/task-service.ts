@@ -114,6 +114,23 @@ export class TaskService {
         return response.Item.photos as PhotoEntry[]
     }
 
+    async listApplicants(params: TaskKeyParams): Promise<Applicant[]> {
+        const response = await this.documentClient
+            .get({
+                TableName: this.props.table,
+                Key: {
+                    id: params.id,
+                },
+            }).promise()
+        const task = response.Item
+        if (task && task.applicants && task.userId === params.userId) {
+            const applicants = task.applicants
+                .filter((item: Applicant) => item.applicationStatus === 'applied')
+            return applicants
+        }
+        return []
+    }
+
     async applyForTask(params: TaskKeyParams): Promise<any> {
         const now = new Date()
         if(!params.applicantId){
