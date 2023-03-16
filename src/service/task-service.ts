@@ -1,6 +1,7 @@
 import { DocumentClient, ScanInput } from 'aws-sdk/clients/dynamodb'
 import { v4 as uuidv4 } from 'uuid'
 import {
+    Applicant,
     PhotoEntry,
     TaskEntity,
     TaskKeyParams
@@ -113,7 +114,16 @@ export class TaskService {
         return response.Item.photos as PhotoEntry[]
     }
 
-    async applyForTask(params: TaskKeyParams): Promise<PhotoEntry | {}> {
+    async applyForTask(params: TaskKeyParams): Promise<any> {
+        const now = new Date()
+        if(!params.applicantId){
+            throw new Error('The applicant id is undefined.')
+        }
+        const newApplicant: Applicant = {
+            userId: params.applicantId,
+            appliedDateTime: now.toISOString(),
+            applicationStatus: 'applied'
+        }
         const response = await this.documentClient
             .get({
                 TableName: this.props.table,
@@ -122,19 +132,30 @@ export class TaskService {
                 },
             }).promise()
         const task = response.Item
+
         if (task) {
-            if(task.appllicants){
-
-            } else {
-
+            const index = task.applicants
+                .findIndex((item: Applicant) => item.userId === params.applicantId)
+            if(index > -1){
+                throw new Error('The applicant has already applied.')
             }
+            // If the user withdraw and wanted to reapply, the current code won't let it happen.
+
             await this.documentClient
-                .put({
+                .update({
                     TableName: this.props.table,
-                    Item: task,
-                    ConditionExpression: 'userId = :userId',
-                    ExpressionAttributeValues : {':userId' : params.userId}
+                    Key: {
+                        id: params.id,
+                    },
+                    UpdateExpression: 'set applicants=list_append(' +
+                        'if_not_exists(applicants, :empty_list), :newApplicants)',
+                    ExpressionAttributeValues : {
+                        ':empty_list': [],
+                        ':newApplicants': [newApplicant]
+                    }
                 }).promise()
+        } else {
+            throw new Error('The task does not exist.')
         }
         return {}
     }
@@ -148,19 +169,27 @@ export class TaskService {
                 },
             }).promise()
         const task = response.Item
+
         if (task) {
-            if(task.appllicants){
-
-            } else {
-
+            const index = task.applicants
+                .findIndex((item: Applicant) => item.userId === params.applicantId)
+            if(index === -1){
+                throw new Error('The application id was not found.')
             }
+
             await this.documentClient
-                .put({
+                .update({
                     TableName: this.props.table,
-                    Item: task,
-                    ConditionExpression: 'userId = :userId',
-                    ExpressionAttributeValues : {':userId' : params.userId}
+                    Key: {
+                        id: params.id,
+                    },
+                    UpdateExpression: `set applicants[${index}].applicationStatus=:applicationStatus`,
+                    ExpressionAttributeValues : {
+                        ':applicationStatus': 'withdrawn'
+                    }
                 }).promise()
+        } else {
+            throw new Error('The task does not exist.')
         }
         return {}
     }
@@ -174,19 +203,27 @@ export class TaskService {
                 },
             }).promise()
         const task = response.Item
+
         if (task) {
-            if(task.appllicants){
-
-            } else {
-
+            const index = task.applicants
+                .findIndex((item: Applicant) => item.userId === params.applicantId)
+            if(index === -1){
+                throw new Error('The application id was not found.')
             }
+
             await this.documentClient
-                .put({
+                .update({
                     TableName: this.props.table,
-                    Item: task,
-                    ConditionExpression: 'userId = :userId',
-                    ExpressionAttributeValues : {':userId' : params.userId}
+                    Key: {
+                        id: params.id,
+                    },
+                    UpdateExpression: `set applicants[${index}].applicationStatus=:applicationStatus`,
+                    ExpressionAttributeValues : {
+                        ':applicationStatus': 'acceptedToStart'
+                    }
                 }).promise()
+        } else {
+            throw new Error('The task does not exist.')
         }
         return {}
     }
@@ -200,19 +237,27 @@ export class TaskService {
                 },
             }).promise()
         const task = response.Item
+
         if (task) {
-            if(task.appllicants){
-
-            } else {
-
+            const index = task.applicants
+                .findIndex((item: Applicant) => item.userId === params.applicantId)
+            if(index === -1){
+                throw new Error('The application id was not found.')
             }
+
             await this.documentClient
-                .put({
+                .update({
                     TableName: this.props.table,
-                    Item: task,
-                    ConditionExpression: 'userId = :userId',
-                    ExpressionAttributeValues : {':userId' : params.userId}
+                    Key: {
+                        id: params.id,
+                    },
+                    UpdateExpression: `set applicants[${index}].applicationStatus=:applicationStatus`,
+                    ExpressionAttributeValues : {
+                        ':applicationStatus': 'rejected'
+                    }
                 }).promise()
+        } else {
+            throw new Error('The task does not exist.')
         }
         return {}
     }
@@ -246,29 +291,20 @@ export class TaskService {
             identityId: photoParams.identityId
         }
         const response = await this.documentClient
-            .get({
+            .update({
                 TableName: this.props.table,
                 Key: {
                     id: params.id,
                 },
+                ConditionExpression: 'userId = :userId',
+                UpdateExpression: 'set photos=list_append(if_not_exists(photos, :empty_list), :newPhotos)',
+                ExpressionAttributeValues : {
+                    ':userId': params.userId,
+                    ':empty_list': [],
+                    ':newPhotos': [newPhoto]
+                }
             }).promise()
-        if (response.Item && response.Item.userId === params.userId) {
-            if(response.Item.photos){
-                response.Item.photos.push(newPhoto)
-            } else{
-                response.Item.photos = [newPhoto]
-            }
-            await this.documentClient
-                .put({
-                    TableName: this.props.table,
-                    Item: response.Item,
-                    ConditionExpression: 'userId = :userId',
-                    ExpressionAttributeValues : {':userId' : params.userId}
-                }).promise()
-        } else{
-            throw new Error('The profile was not found for this accountId' +
-                ' or the user did not match the profile owner.')
-        }
+
         return newPhoto
     }
 
@@ -282,15 +318,20 @@ export class TaskService {
             }).promise()
         const profile = response.Item
         if (profile && profile.photos && profile.userId === params.userId) {
-            const photosWithoutItem = profile.photos
-                .filter((item: PhotoEntry) => item.photoId != photoParams.photoId)
-            profile.photos = photosWithoutItem
+            const indexToRemove = profile.photos
+                .findIndex((item: PhotoEntry) => item.photoId != photoParams.photoId)
+
             await this.documentClient
-                .put({
+                .update({
                     TableName: this.props.table,
-                    Item: profile,
+                    Key: {
+                        id: params.id,
+                    },
                     ConditionExpression: 'userId = :userId',
-                    ExpressionAttributeValues : {':userId' : params.userId}
+                    UpdateExpression: `REMOVE photos[${indexToRemove}]`,
+                    ExpressionAttributeValues : {
+                        ':userId': params.userId,
+                    }
                 }).promise()
         }
     }

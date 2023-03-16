@@ -8,7 +8,7 @@ export interface PhotoEntry {
     bucket?: string
     key?: string
     type?: string
-    identityId: string
+    identityId?: string
 }
 
 export interface Location {
