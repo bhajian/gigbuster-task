@@ -134,10 +134,12 @@ export class TaskService {
         const task = response.Item
 
         if (task) {
-            const index = task.applicants
-                .findIndex((item: Applicant) => item.userId === params.applicantId)
-            if(index > -1){
-                throw new Error('The applicant has already applied.')
+            if(task.applicants){
+                const index = task.applicants
+                    .findIndex((item: Applicant) => item.userId === params.applicantId)
+                if(index > -1){
+                    throw new Error('The applicant has already applied.')
+                }
             }
             // If the user withdraw and wanted to reapply, the current code won't let it happen.
 
@@ -170,7 +172,7 @@ export class TaskService {
             }).promise()
         const task = response.Item
 
-        if (task) {
+        if (task && task.applicants) {
             const index = task.applicants
                 .findIndex((item: Applicant) => item.userId === params.applicantId)
             if(index === -1){
@@ -189,7 +191,7 @@ export class TaskService {
                     }
                 }).promise()
         } else {
-            throw new Error('The task does not exist.')
+            throw new Error('The task or applicant does not exist.')
         }
         return {}
     }
@@ -204,11 +206,14 @@ export class TaskService {
             }).promise()
         const task = response.Item
 
-        if (task) {
+        if (task && task.applicants) {
             const index = task.applicants
                 .findIndex((item: Applicant) => item.userId === params.applicantId)
             if(index === -1){
                 throw new Error('The application id was not found.')
+            }
+            if(task.applicants[index].applicationStatus !== 'applied'){
+                throw new Error('The applicant status is not active.')
             }
 
             await this.documentClient
@@ -217,13 +222,15 @@ export class TaskService {
                     Key: {
                         id: params.id,
                     },
+                    ConditionExpression: 'userId = :userId',
                     UpdateExpression: `set applicants[${index}].applicationStatus=:applicationStatus`,
                     ExpressionAttributeValues : {
+                        ':userId': params.userId,
                         ':applicationStatus': 'acceptedToStart'
                     }
                 }).promise()
         } else {
-            throw new Error('The task does not exist.')
+            throw new Error('The task or applicant does not exist.')
         }
         return {}
     }
@@ -238,11 +245,14 @@ export class TaskService {
             }).promise()
         const task = response.Item
 
-        if (task) {
+        if (task && task.applicants) {
             const index = task.applicants
                 .findIndex((item: Applicant) => item.userId === params.applicantId)
             if(index === -1){
                 throw new Error('The application id was not found.')
+            }
+            if(task.applicants[index].applicationStatus !== 'applied'){
+                throw new Error('The applicant status is not active.')
             }
 
             await this.documentClient
@@ -251,13 +261,15 @@ export class TaskService {
                     Key: {
                         id: params.id,
                     },
+                    ConditionExpression: 'userId = :userId',
                     UpdateExpression: `set applicants[${index}].applicationStatus=:applicationStatus`,
                     ExpressionAttributeValues : {
+                        ':userId': params.userId,
                         ':applicationStatus': 'rejected'
                     }
                 }).promise()
         } else {
-            throw new Error('The task does not exist.')
+            throw new Error('The task or applicant does not exist.')
         }
         return {}
     }
