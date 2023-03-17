@@ -47,9 +47,6 @@ export function getQueryString(event: APIGatewayProxyEvent,
     if (queryStringParameters) {
         value = queryStringParameters[parameter!];
     }
-    if (!value) {
-        throw new ExternalError(400, `Path must contain path parameter ${parameter}.`)
-    }
     return value
 }
 

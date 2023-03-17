@@ -36,20 +36,50 @@ export class TaskService {
         return response.Items as TaskEntity[]
     }
 
-    async query(userId: string): Promise<TaskEntity[]> {
+    async query(params: any): Promise<any[]> {
         const response = await this.documentClient
             .scan({
                 TableName: this.props.taskTable,
-                IndexName: 'userIdIndex',
                 ProjectionExpression: 'id, country, stateProvince, city, userId, ' +
                     'price, priceUnit, category, description, taskStatus, photos',
                 FilterExpression: 'userId <> :userId',
-                ExpressionAttributeValues : {':userId' : userId}
+                ExpressionAttributeValues : {':userId' : params.userId},
+                Limit: params.Limit,
+                ExclusiveStartKey: params.lastEvaluatedKey
             }).promise()
         if (response.Items === undefined) {
             return [] as TaskEntity[]
         }
-        return response.Items as TaskEntity[]
+
+        const tasks = response.Items
+        let userIds = []
+        let tasksMap = new Map<string, any>()
+        if (tasks) {
+            for (let i = 0; i < tasks.length; i++) {
+                const userId = tasks[i].userId
+                if(tasksMap.has(userId)){
+                } else {
+                    userIds.push({accountId: tasks[i].userId})
+                    tasksMap.set(userId, tasks[i])
+                }
+            }
+        }
+
+        const profiles = await this.batchGetProfiles(userIds)
+        const complexTasks : any[] = []
+
+        for (let i = 0; i < tasks.length; i++) {
+            const profile = profiles.get(tasks[i].userId)
+            complexTasks.push({
+                ...tasks[i],
+                name: profile.name,
+                location: profile.location,
+                profilePhoto: ( profile.photos ?
+                    profile.photos[0]: undefined)
+            })
+        }
+
+        return complexTasks
     }
 
     async get(params: TaskKeyParams): Promise<TaskEntity> {
@@ -126,16 +156,40 @@ export class TaskService {
         const task = response.Item
 
         let userIds = []
-        let applicants = new Map<string, Applicant>()
+        let applicants = []
 
         if (task && task.applicants && task.userId === params.userId) {
+            applicants = task.applicants
             for (let i = 0; i < task.applicants.length; i++) {
                 userIds.push({accountId: task.applicants[i].userId})
-                applicants.set(task.applicants[i].userId, task.applicants[i])
             }
         }
 
+        const profiles = await this.batchGetProfiles(userIds)
+        const applicantProfiles : ApplicantProfile[] = []
+
+        if (profiles) {
+            for (let i = 0; i < applicants.length; i++) {
+                const profile = profiles.get(applicants[i].userId)
+                const ap : ApplicantProfile = {
+                    userId: applicants[i].userId,
+                    applicant: applicants[i],
+                    name: ( profile && profile.name ?
+                        profile.name: ''),
+                    location: ( profile ?
+                        profile.location: undefined),
+                    profilePhoto: ( profile && profile.photos ?
+                        profile.photos[0]: undefined)
+                }
+                applicantProfiles.push(ap)
+            }
+        }
+        return applicantProfiles
+    }
+
+    async batchGetProfiles(userIds: any): Promise<any> {
         const requestItems: any = {}
+        let profiles = new Map<string, any>()
         requestItems[this.props.profileTable] = {
             Keys: userIds
         }
@@ -143,27 +197,14 @@ export class TaskService {
             .batchGet({
                 RequestItems: requestItems
             }).promise()
-        let users: any = []
+        let rawProfiles: any = []
         if(userResponse && userResponse.Responses && userResponse.Responses[this.props.profileTable]){
-            users = userResponse.Responses[this.props.profileTable]
-        }
-        const applicantProfiles : ApplicantProfile[] = []
-
-        if (users) {
-            for (let i = 0; i < users.length; i++) {
-                const ap : ApplicantProfile = {
-                    userId: users[i].userId,
-                    applicant: applicants.get(users[i].userId),
-                    name: users[i].name,
-                    location: users[i].location,
-                    profilePhoto: ( users[i].photos ?
-                        users[i].photos[0]: {})
-                }
-                applicantProfiles.push(ap)
+            rawProfiles = userResponse.Responses[this.props.profileTable]
+            for(let i=0; i< rawProfiles.length; i++){
+                profiles.set(rawProfiles[i].userId, rawProfiles[i])
             }
         }
-
-        return applicantProfiles
+        return profiles
     }
 
     async applyForTask(params: TaskKeyParams): Promise<any> {

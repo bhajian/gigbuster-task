@@ -130,6 +130,7 @@ export class TaskApis extends GenericApi {
             resource: props.queryResource,
             environment: {
                 TABLE: props.table.tableName,
+                PROFILE_TABLE: profileITable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -355,6 +356,7 @@ export class TaskApis extends GenericApi {
         props.table.grantFullAccess(this.getPhotosApi.grantPrincipal)
 
         profileITable.grantFullAccess(this.listApplicantApi.grantPrincipal)
+        profileITable.grantFullAccess(this.queryApi.grantPrincipal)
     }
 
     public getProfileTable() : ITable {
