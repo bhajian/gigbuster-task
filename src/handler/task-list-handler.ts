@@ -10,7 +10,8 @@ import {getSub} from "../lib/utils";
 const table = Env.get('TABLE')
 const bucket = Env.get('IMAGE_BUCKET')
 const service = new TaskService({
-    table: table,
+    profileTable: "",
+    taskTable: table,
     bucket: bucket
 })
 

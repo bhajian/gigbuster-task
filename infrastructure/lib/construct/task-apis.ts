@@ -5,7 +5,7 @@ import {NodejsFunction} from "aws-cdk-lib/aws-lambda-nodejs";
 import {CognitoUserPoolsAuthorizer, IResource} from "aws-cdk-lib/aws-apigateway";
 import {AuthorizationType} from "@aws-cdk/aws-apigateway";
 import config from "../../config/config";
-import {Table} from "aws-cdk-lib/aws-dynamodb";
+import {ITable, Table} from "aws-cdk-lib/aws-dynamodb";
 import {UserPool} from "aws-cdk-lib/aws-cognito";
 import {Bucket} from "aws-cdk-lib/aws-s3";
 
@@ -107,6 +107,8 @@ export class TaskApis extends GenericApi {
     }
 
     private initializeTaskApis(props: TaskApiProps){
+        const profileITable = this.getProfileTable()
+
         this.listApi = this.addMethod({
             functionName: 'task-list',
             handlerName: 'task-list-handler.ts',
@@ -198,6 +200,7 @@ export class TaskApis extends GenericApi {
             resource: props.applicantResource,
             environment: {
                 TABLE: props.table.tableName,
+                PROFILE_TABLE: profileITable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -350,6 +353,12 @@ export class TaskApis extends GenericApi {
         props.table.grantFullAccess(this.deletePhotoApi.grantPrincipal)
         props.table.grantFullAccess(this.listPhotosApi.grantPrincipal)
         props.table.grantFullAccess(this.getPhotosApi.grantPrincipal)
+
+        profileITable.grantFullAccess(this.listApplicantApi.grantPrincipal)
+    }
+
+    public getProfileTable() : ITable {
+        return Table.fromTableArn(this, 'profileTableId', config.profileTableArn)
     }
 
     protected createAuthorizer(props: AuthorizerProps): CognitoUserPoolsAuthorizer{

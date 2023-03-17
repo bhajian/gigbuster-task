@@ -10,8 +10,10 @@ import {PhotoEntry, TaskKeyParams} from "../service/task-types";
 
 const table = Env.get('TABLE')
 const bucket = Env.get('IMAGE_BUCKET')
+const profileTable = Env.get('PROFILE_TABLE')
 const service = new TaskService({
-    table: table,
+    profileTable: profileTable,
+    taskTable: table,
     bucket: bucket
 })
 

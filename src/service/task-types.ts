@@ -14,7 +14,7 @@ export interface PhotoEntry {
 export interface Location {
     latitude: number
     longitude: number
-    address: string
+    locationName: string
 }
 
 export interface Applicant {
@@ -22,6 +22,15 @@ export interface Applicant {
     appliedDateTime: string
     applicationStatus: string
 }
+
+export interface ApplicantProfile {
+    userId: string
+    applicant?: Applicant
+    name: string
+    location: Location
+    profilePhoto: PhotoEntry
+}
+
 export interface TaskEntity {
     id: string
     title: string

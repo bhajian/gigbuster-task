@@ -1,14 +1,15 @@
 import { DocumentClient, ScanInput } from 'aws-sdk/clients/dynamodb'
 import { v4 as uuidv4 } from 'uuid'
 import {
-    Applicant,
+    Applicant, ApplicantProfile,
     PhotoEntry,
     TaskEntity,
     TaskKeyParams
 } from "./task-types";
 
 interface ReviewableServiceProps{
-    table: string
+    taskTable: string
+    profileTable: string
     bucket: string
 }
 
@@ -24,7 +25,7 @@ export class TaskService {
     async list(userId: string): Promise<TaskEntity[]> {
         const response = await this.documentClient
             .query({
-                TableName: this.props.table,
+                TableName: this.props.taskTable,
                 IndexName: 'userIdIndex',
                 KeyConditionExpression: 'userId = :userId',
                 ExpressionAttributeValues : {':userId' : userId}
@@ -38,7 +39,7 @@ export class TaskService {
     async query(userId: string): Promise<TaskEntity[]> {
         const response = await this.documentClient
             .scan({
-                TableName: this.props.table,
+                TableName: this.props.taskTable,
                 IndexName: 'userIdIndex',
                 ProjectionExpression: 'id, country, stateProvince, city, userId, ' +
                     'price, priceUnit, category, description, taskStatus, photos',
@@ -54,7 +55,7 @@ export class TaskService {
     async get(params: TaskKeyParams): Promise<TaskEntity> {
         const response = await this.documentClient
             .get({
-                TableName: this.props.table,
+                TableName: this.props.taskTable,
                 Key: {
                     id: params.id,
                 },
@@ -69,7 +70,7 @@ export class TaskService {
         params.createdDateTime = now
         await this.documentClient
             .put({
-                TableName: this.props.table,
+                TableName: this.props.taskTable,
                 Item: params,
             }).promise()
         return params
@@ -78,7 +79,7 @@ export class TaskService {
     async put(params: TaskEntity): Promise<TaskEntity> {
         const response = await this.documentClient
             .put({
-                TableName: this.props.table,
+                TableName: this.props.taskTable,
                 Item: params,
                 ConditionExpression: 'userId = :userId',
                 ExpressionAttributeValues : {':userId' : params.userId}
@@ -89,7 +90,7 @@ export class TaskService {
     async delete(params: TaskKeyParams) {
         const response = await this.documentClient
             .delete({
-                TableName: this.props.table,
+                TableName: this.props.taskTable,
                 Key: {
                     id: params.id,
                 },
@@ -101,7 +102,7 @@ export class TaskService {
     async listPhotos(params: TaskKeyParams): Promise<PhotoEntry[]> {
         const response = await this.documentClient
             .get({
-                TableName: this.props.table,
+                TableName: this.props.taskTable,
                 Key: {
                     id: params.id,
                 },
@@ -114,21 +115,52 @@ export class TaskService {
         return response.Item.photos as PhotoEntry[]
     }
 
-    async listApplicants(params: TaskKeyParams): Promise<Applicant[]> {
+    async listApplicants(params: TaskKeyParams): Promise<ApplicantProfile[]> {
         const response = await this.documentClient
             .get({
-                TableName: this.props.table,
+                TableName: this.props.taskTable,
                 Key: {
                     id: params.id,
                 },
             }).promise()
         const task = response.Item
+
+        let userIds = []
+        let applicants = new Map<string, Applicant>()
+
         if (task && task.applicants && task.userId === params.userId) {
-            const applicants = task.applicants
-                .filter((item: Applicant) => item.applicationStatus === 'applied')
-            return applicants
+            for (let i = 0; i < task.applicants.length; i++) {
+                userIds.push(task.applicants[i].applicantId)
+                applicants.set(task.applicants[i].applicantId, task.applicants[i])
+            }
         }
-        return []
+
+        const response2 = await this.documentClient
+            .query({
+                TableName: this.props.profileTable,
+                IndexName: 'userIdIndex',
+                KeyConditionExpression: 'userId IN :userIds',
+                ExpressionAttributeValues : {
+                    ':userIds' : userIds
+                }
+            }).promise()
+        const users = response2.Items
+        const applicantProfiles : ApplicantProfile[] = []
+
+        if (users) {
+            for (let i = 0; i < users.length; i++) {
+                const ap : ApplicantProfile = {
+                    userId: users[i].userId,
+                    applicant: applicants.get(users[i].userId),
+                    name: users[i].name,
+                    location: users[i].location,
+                    profilePhoto: users[i].photos[0]
+                }
+                applicantProfiles.push(ap)
+            }
+        }
+
+        return applicantProfiles
     }
 
     async applyForTask(params: TaskKeyParams): Promise<any> {
@@ -143,7 +175,7 @@ export class TaskService {
         }
         const response = await this.documentClient
             .get({
-                TableName: this.props.table,
+                TableName: this.props.taskTable,
                 Key: {
                     id: params.id,
                 },
@@ -162,7 +194,7 @@ export class TaskService {
 
             await this.documentClient
                 .update({
-                    TableName: this.props.table,
+                    TableName: this.props.taskTable,
                     Key: {
                         id: params.id,
                     },
@@ -182,7 +214,7 @@ export class TaskService {
     async withdrawApplication(params: TaskKeyParams): Promise<PhotoEntry | {}> {
         const response = await this.documentClient
             .get({
-                TableName: this.props.table,
+                TableName: this.props.taskTable,
                 Key: {
                     id: params.id,
                 },
@@ -198,7 +230,7 @@ export class TaskService {
 
             await this.documentClient
                 .update({
-                    TableName: this.props.table,
+                    TableName: this.props.taskTable,
                     Key: {
                         id: params.id,
                     },
@@ -216,7 +248,7 @@ export class TaskService {
     async acceptApplication(params: TaskKeyParams): Promise<PhotoEntry | {}> {
         const response = await this.documentClient
             .get({
-                TableName: this.props.table,
+                TableName: this.props.taskTable,
                 Key: {
                     id: params.id,
                 },
@@ -235,7 +267,7 @@ export class TaskService {
 
             await this.documentClient
                 .update({
-                    TableName: this.props.table,
+                    TableName: this.props.taskTable,
                     Key: {
                         id: params.id,
                     },
@@ -255,7 +287,7 @@ export class TaskService {
     async rejectApplication(params: TaskKeyParams): Promise<PhotoEntry | {}> {
         const response = await this.documentClient
             .get({
-                TableName: this.props.table,
+                TableName: this.props.taskTable,
                 Key: {
                     id: params.id,
                 },
@@ -274,7 +306,7 @@ export class TaskService {
 
             await this.documentClient
                 .update({
-                    TableName: this.props.table,
+                    TableName: this.props.taskTable,
                     Key: {
                         id: params.id,
                     },
@@ -294,7 +326,7 @@ export class TaskService {
     async getPhoto(params: TaskKeyParams, photoParams: PhotoEntry): Promise<PhotoEntry | {}> {
         const response = await this.documentClient
             .get({
-                TableName: this.props.table,
+                TableName: this.props.taskTable,
                 Key: {
                     id: params.id,
                 },
@@ -321,7 +353,7 @@ export class TaskService {
         }
         const response = await this.documentClient
             .update({
-                TableName: this.props.table,
+                TableName: this.props.taskTable,
                 Key: {
                     id: params.id,
                 },
@@ -340,7 +372,7 @@ export class TaskService {
     async deletePhoto(params: TaskKeyParams, photoParams: PhotoEntry) {
         const response = await this.documentClient
             .get({
-                TableName: this.props.table,
+                TableName: this.props.taskTable,
                 Key: {
                     id: params.id,
                 },
@@ -352,7 +384,7 @@ export class TaskService {
 
             await this.documentClient
                 .update({
-                    TableName: this.props.table,
+                    TableName: this.props.taskTable,
                     Key: {
                         id: params.id,
                     },

@@ -9,5 +9,6 @@
   "basePath": "task",
   "authenticatedRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-profileCognitoIdCognitoDefaul-DYBFDAZT2AEB",
   "unauthenticatedRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-profileCognitoIdCognitoDefaul-9HX6UW6UNOB3",
-  "adminRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-profileCognitoIdCognitoAdminR-8Z59JY2YHY9H"
+  "adminRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-profileCognitoIdCognitoAdminR-8Z59JY2YHY9H",
+  "profileTableArn": "arn:aws:dynamodb:us-east-1:341450653870:table/Profile-dev2-0a3806339303"
 }
