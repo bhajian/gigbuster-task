@@ -154,7 +154,7 @@ export class TaskService {
                 },
             }).promise()
         const task = response.Item
-        if(!task.applicants){
+        if(!task || !task.applicants){
             return []
         }
         let userIds = []
