@@ -130,21 +130,23 @@ export class TaskService {
 
         if (task && task.applicants && task.userId === params.userId) {
             for (let i = 0; i < task.applicants.length; i++) {
-                userIds.push(task.applicants[i].applicantId)
-                applicants.set(task.applicants[i].applicantId, task.applicants[i])
+                userIds.push({accountId: task.applicants[i].userId})
+                applicants.set(task.applicants[i].userId, task.applicants[i])
             }
         }
 
-        const response2 = await this.documentClient
-            .query({
-                TableName: this.props.profileTable,
-                IndexName: 'userIdIndex',
-                KeyConditionExpression: 'userId IN :userIds',
-                ExpressionAttributeValues : {
-                    ':userIds' : userIds
-                }
+        const requestItems: any = {}
+        requestItems[this.props.profileTable] = {
+            Keys: userIds
+        }
+        const userResponse = await this.documentClient
+            .batchGet({
+                RequestItems: requestItems
             }).promise()
-        const users = response2.Items
+        let users: any = []
+        if(userResponse && userResponse.Responses && userResponse.Responses[this.props.profileTable]){
+            users = userResponse.Responses[this.props.profileTable]
+        }
         const applicantProfiles : ApplicantProfile[] = []
 
         if (users) {
@@ -154,7 +156,8 @@ export class TaskService {
                     applicant: applicants.get(users[i].userId),
                     name: users[i].name,
                     location: users[i].location,
-                    profilePhoto: users[i].photos[0]
+                    profilePhoto: ( users[i].photos ?
+                        users[i].photos[0]: {})
                 }
                 applicantProfiles.push(ap)
             }
