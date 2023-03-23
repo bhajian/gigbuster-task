@@ -1,14 +1,14 @@
 {
-  "envName": "dev2",
+  "envName": "dev",
   "account": "341450653870",
   "region": "us-east-1",
-  "apiDomainCertificateArn": "arn:aws:acm:us-east-1:341450653870:certificate/8df2b6ee-0cac-496e-bbcf-da6bf61e8b2f",
-  "rootDomain": "fameorbit.com",
+  "apiDomainCertificateArn": "arn:aws:acm:us-east-1:341450653870:certificate/32330979-2b1e-4cb4-96ef-d82cf77106fd",
+  "rootDomain": "gigbusters.app",
   "apiSubdomain": "api",
-  "userPoolArn": "arn:aws:cognito-idp:us-east-1:341450653870:userpool/us-east-1_OL1w4ne45",
+  "userPoolArn": "arn:aws:cognito-idp:us-east-1:341450653870:userpool/us-east-1_CzI0ql6Mi",
   "basePath": "task",
-  "authenticatedRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-profileCognitoIdCognitoDefaul-DYBFDAZT2AEB",
-  "unauthenticatedRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-profileCognitoIdCognitoDefaul-9HX6UW6UNOB3",
-  "adminRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-profileCognitoIdCognitoAdminR-8Z59JY2YHY9H",
-  "profileTableArn": "arn:aws:dynamodb:us-east-1:341450653870:table/Profile-dev2-0a3806339303"
+  "authenticatedRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-profileCognitoIdCognitoDefaul-QN0O18V97VIM",
+  "unauthenticatedRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-profileCognitoIdCognitoDefaul-CPGR1XQSMEX6",
+  "adminRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-profileCognitoIdCognitoAdminR-1AP69N69RQK70",
+  "profileTableArn": "arn:aws:dynamodb:us-east-1:341450653870:table/Profile-dev-0ad66163eae7"
 }

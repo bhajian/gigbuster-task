@@ -170,21 +170,19 @@ export class TaskService {
         const profiles = await this.batchGetProfiles(userIds)
         const applicantProfiles : ApplicantProfile[] = []
 
-        if (profiles) {
-            for (let i = 0; i < applicants.length; i++) {
-                const profile = profiles.get(applicants[i].userId)
-                const ap : ApplicantProfile = {
-                    userId: applicants[i].userId,
-                    applicant: applicants[i],
-                    name: ( profile && profile.name ?
-                        profile.name: ''),
-                    location: ( profile ?
-                        profile.location: undefined),
-                    profilePhoto: ( profile && profile.photos ?
-                        profile.photos[0]: undefined)
-                }
-                applicantProfiles.push(ap)
+        for (let i = 0; i < applicants.length; i++) {
+            const profile = profiles.get(applicants[i].userId)
+            const ap : ApplicantProfile = {
+                userId: applicants[i].userId,
+                applicant: applicants[i],
+                name: ( profile && profile.name ?
+                    profile.name: ''),
+                location: ( profile ?
+                    profile.location: undefined),
+                profilePhoto: ( profile && profile.photos ?
+                    profile.photos[0]: undefined)
             }
+            applicantProfiles.push(ap)
         }
         return applicantProfiles
     }
@@ -192,6 +190,10 @@ export class TaskService {
     async batchGetProfiles(userIds: any): Promise<any> {
         const requestItems: any = {}
         let profiles = new Map<string, any>()
+        if (userIds.length === 0 ){
+            return profiles
+        }
+
         requestItems[this.props.profileTable] = {
             Keys: userIds
         }
