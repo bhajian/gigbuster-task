@@ -17,7 +17,7 @@ export class TaskStatefulStack extends Stack {
         super(scope, id, props);
         this.initializeSuffix()
         this.initializeDynamoDBTable()
-        this.initializeReviewablePhotosBucket()
+        this.initializeTaskPhotosBucket()
         this.initializeBucketPolicies()
     }
 
@@ -53,7 +53,7 @@ export class TaskStatefulStack extends Stack {
         })
     }
 
-    private initializeReviewablePhotosBucket() {
+    private initializeTaskPhotosBucket() {
         this.taskImageBucket = new Bucket(this, 'task-image', {
             removalPolicy: RemovalPolicy.DESTROY,
             bucketName: `task-image-${config.envName}-${this.suffix}`,
