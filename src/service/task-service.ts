@@ -59,7 +59,7 @@ export class TaskService {
                 const userId = tasks[i].userId
                 if(tasksMap.has(userId)){
                 } else {
-                    userIds.push({accountId: tasks[i].userId})
+                    userIds.push({userId: tasks[i].userId})
                     tasksMap.set(userId, tasks[i])
                 }
             }
@@ -72,9 +72,9 @@ export class TaskService {
             const profile = profiles.get(tasks[i].userId)
             complexTasks.push({
                 ...tasks[i],
-                name: profile.name,
-                location: profile.location,
-                profilePhoto: ( profile.photos ?
+                name: (profile && profile.name? profile.name : ''),
+                location: (profile && profile.location ? profile.location : {}),
+                profilePhoto: ( profile && profile.photos && profile.photos[0] ?
                     profile.photos[0]: undefined)
             })
         }
@@ -163,7 +163,7 @@ export class TaskService {
         if (task && task.applicants && task.userId === params.userId) {
             applicants = task.applicants
             for (let i = 0; i < task.applicants.length; i++) {
-                userIds.push({accountId: task.applicants[i].userId})
+                userIds.push({userId: task.applicants[i].userId})
             }
         }
 

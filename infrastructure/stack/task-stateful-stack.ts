@@ -74,9 +74,9 @@ export class TaskStatefulStack extends Stack {
 
     private initializeBucketPolicies() {
         const authenticatedRole = Role.fromRoleArn(
-            this, 'authenticatedRole', config.authenticatedRoleArn)
+            this, 'authenticatedRoleTask', config.authenticatedRoleArn)
         const adminRole = Role.fromRoleArn(
-            this, 'adminRole', config.adminRoleArn)
+            this, 'adminRoleTask', config.adminRoleArn)
         const uploadBucketPolicy = new PolicyStatement({
             effect: Effect.ALLOW,
             actions: [

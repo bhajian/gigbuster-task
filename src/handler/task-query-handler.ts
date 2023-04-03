@@ -40,7 +40,7 @@ export async function handler(event: APIGatewayProxyEvent, context: Context):
         result.body = JSON.stringify(items)
         return result
     }
-    catch (e) {
+    catch (e: any) {
         result.statusCode = 500
         result.body = e.message
     }
