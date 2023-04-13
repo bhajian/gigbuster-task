@@ -27,11 +27,11 @@ export async function handler(event: APIGatewayProxyEvent, context: Context):
         body: 'Hello From Edit Api!'
     }
     try {
-        const id = getPathParameter(event, 'id')
+        const taskId = getPathParameter(event, 'id')
         const photoId = getPathParameter(event, 'photoId')
         const sub = getSub(event)
         await service.deletePhoto({
-            id: id,
+            taskId: taskId,
             userId: sub,
         }, {
             photoId: photoId

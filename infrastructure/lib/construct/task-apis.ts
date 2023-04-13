@@ -11,6 +11,7 @@ import {Bucket} from "aws-cdk-lib/aws-s3";
 
 export interface ApiProps {
     taskTable: GenericDynamoTable
+    transactionTable: GenericDynamoTable
     taskImageBucket: Bucket
 }
 
@@ -22,7 +23,8 @@ export interface AuthorizerProps {
 }
 
 export interface TaskApiProps {
-    table: Table
+    taskTable: Table
+    transactionTable: Table
     bucket: Bucket
     authorizer: CognitoUserPoolsAuthorizer
     rootResource: IResource
@@ -100,7 +102,8 @@ export class TaskApis extends GenericApi {
             idResource: idResource,
             queryResource: queryResource,
             rootResource: this.api.root,
-            table: props.taskTable.table,
+            taskTable: props.taskTable.table,
+            transactionTable: props.transactionTable.table,
             bucket: props.taskImageBucket
         })
 
@@ -115,7 +118,7 @@ export class TaskApis extends GenericApi {
             verb: 'GET',
             resource: props.rootResource,
             environment: {
-                TABLE: props.table.tableName,
+                TABLE: props.taskTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -129,7 +132,7 @@ export class TaskApis extends GenericApi {
             verb: 'GET',
             resource: props.queryResource,
             environment: {
-                TABLE: props.table.tableName,
+                TABLE: props.taskTable.tableName,
                 PROFILE_TABLE: profileITable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
@@ -144,7 +147,7 @@ export class TaskApis extends GenericApi {
             verb: 'GET',
             resource: props.idResource,
             environment: {
-                TABLE: props.table.tableName,
+                TABLE: props.taskTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -158,7 +161,7 @@ export class TaskApis extends GenericApi {
             verb: 'POST',
             resource: props.rootResource,
             environment: {
-                TABLE: props.table.tableName,
+                TABLE: props.taskTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -172,7 +175,7 @@ export class TaskApis extends GenericApi {
             verb: 'PUT',
             resource: props.rootResource,
             environment: {
-                TABLE: props.table.tableName,
+                TABLE: props.taskTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -186,7 +189,7 @@ export class TaskApis extends GenericApi {
             verb: 'DELETE',
             resource: props.idResource,
             environment: {
-                TABLE: props.table.tableName,
+                TABLE: props.taskTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -194,13 +197,16 @@ export class TaskApis extends GenericApi {
             authorizer: props.authorizer
         })
 
+        ///////////////////
+
         this.listApplicantApi = this.addMethod({
             functionName: 'task-list-applicant',
             handlerName: 'task-list-applicant-handler.ts',
             verb: 'GET',
             resource: props.applicantResource,
             environment: {
-                TABLE: props.table.tableName,
+                TASK_TABLE: props.taskTable.tableName,
+                TRANSACTION_TABLE: props.transactionTable.tableName,
                 PROFILE_TABLE: profileITable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
@@ -215,7 +221,8 @@ export class TaskApis extends GenericApi {
             verb: 'PUT',
             resource: props.applyResource,
             environment: {
-                TABLE: props.table.tableName,
+                TASK_TABLE: props.taskTable.tableName,
+                TRANSACTION_TABLE: props.transactionTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -229,7 +236,8 @@ export class TaskApis extends GenericApi {
             verb: 'PUT',
             resource: props.withdrawResource,
             environment: {
-                TABLE: props.table.tableName,
+                TASK_TABLE: props.taskTable.tableName,
+                TRANSACTION_TABLE: props.transactionTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -243,7 +251,8 @@ export class TaskApis extends GenericApi {
             verb: 'PUT',
             resource: props.acceptResource,
             environment: {
-                TABLE: props.table.tableName,
+                TASK_TABLE: props.taskTable.tableName,
+                TRANSACTION_TABLE: props.transactionTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -257,7 +266,8 @@ export class TaskApis extends GenericApi {
             verb: 'PUT',
             resource: props.rejectResource,
             environment: {
-                TABLE: props.table.tableName,
+                TASK_TABLE: props.taskTable.tableName,
+                TRANSACTION_TABLE: props.transactionTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -273,7 +283,7 @@ export class TaskApis extends GenericApi {
             verb: 'GET',
             resource: props.photoResource,
             environment: {
-                TABLE: props.table.tableName,
+                TABLE: props.taskTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -287,7 +297,7 @@ export class TaskApis extends GenericApi {
             verb: 'GET',
             resource: props.photoIdResource,
             environment: {
-                TABLE: props.table.tableName,
+                TABLE: props.taskTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -301,7 +311,7 @@ export class TaskApis extends GenericApi {
             verb: 'POST',
             resource: props.photoResource,
             environment: {
-                TABLE: props.table.tableName,
+                TABLE: props.taskTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -315,7 +325,7 @@ export class TaskApis extends GenericApi {
             verb: 'DELETE',
             resource: props.photoIdResource,
             environment: {
-                TABLE: props.table.tableName,
+                TABLE: props.taskTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -329,7 +339,7 @@ export class TaskApis extends GenericApi {
             verb: 'PUT',
             resource: props.photoResource,
             environment: {
-                TABLE: props.table.tableName,
+                TABLE: props.taskTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -337,23 +347,30 @@ export class TaskApis extends GenericApi {
             authorizer: props.authorizer
         })
 
-        props.table.grantFullAccess(this.listApi.grantPrincipal)
-        props.table.grantFullAccess(this.queryApi.grantPrincipal)
-        props.table.grantFullAccess(this.getApi.grantPrincipal)
-        props.table.grantFullAccess(this.postApi.grantPrincipal)
-        props.table.grantFullAccess(this.putApi.grantPrincipal)
-        props.table.grantFullAccess(this.deleteApi.grantPrincipal)
-        props.table.grantFullAccess(this.listApplicantApi.grantPrincipal)
-        props.table.grantFullAccess(this.applyApi.grantPrincipal)
-        props.table.grantFullAccess(this.withdrawApi.grantPrincipal)
-        props.table.grantFullAccess(this.acceptApi.grantPrincipal)
-        props.table.grantFullAccess(this.rejectApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.listApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.queryApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.getApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.postApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.putApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.deleteApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.listApplicantApi.grantPrincipal)
 
-        props.table.grantFullAccess(this.setMainPhotoApi.grantPrincipal)
-        props.table.grantFullAccess(this.addPhotoApi.grantPrincipal)
-        props.table.grantFullAccess(this.deletePhotoApi.grantPrincipal)
-        props.table.grantFullAccess(this.listPhotosApi.grantPrincipal)
-        props.table.grantFullAccess(this.getPhotosApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.applyApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.withdrawApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.acceptApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.rejectApi.grantPrincipal)
+
+        props.transactionTable.grantFullAccess(this.applyApi.grantPrincipal)
+        props.transactionTable.grantFullAccess(this.withdrawApi.grantPrincipal)
+        props.transactionTable.grantFullAccess(this.acceptApi.grantPrincipal)
+        props.transactionTable.grantFullAccess(this.rejectApi.grantPrincipal)
+
+        props.taskTable.grantFullAccess(this.listApplicantApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.setMainPhotoApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.addPhotoApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.deletePhotoApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.listPhotosApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.getPhotosApi.grantPrincipal)
 
         profileITable.grantFullAccess(this.listApplicantApi.grantPrincipal)
         profileITable.grantFullAccess(this.queryApi.grantPrincipal)

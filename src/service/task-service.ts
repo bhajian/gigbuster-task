@@ -1,14 +1,15 @@
 import { DocumentClient, ScanInput } from 'aws-sdk/clients/dynamodb'
 import { v4 as uuidv4 } from 'uuid'
 import {
-    Applicant, ApplicantProfile,
+    ApplicantProfile,
     PhotoEntry,
     TaskEntity,
-    TaskKeyParams
+    KeyParams, TransactionEntity
 } from "./task-types";
 
 interface ReviewableServiceProps{
     taskTable: string
+    transactionTable?: string
     profileTable: string
     bucket: string
 }
@@ -82,12 +83,12 @@ export class TaskService {
         return complexTasks
     }
 
-    async get(params: TaskKeyParams): Promise<TaskEntity> {
+    async get(params: KeyParams): Promise<TaskEntity> {
         const response = await this.documentClient
             .get({
                 TableName: this.props.taskTable,
                 Key: {
-                    id: params.id,
+                    id: params.taskId,
                 },
             }).promise()
         return response.Item as TaskEntity
@@ -117,24 +118,24 @@ export class TaskService {
         return params
     }
 
-    async delete(params: TaskKeyParams) {
+    async delete(params: KeyParams) {
         const response = await this.documentClient
             .delete({
                 TableName: this.props.taskTable,
                 Key: {
-                    id: params.id,
+                    id: params.taskId,
                 },
                 ConditionExpression: 'userId = :userId',
                 ExpressionAttributeValues : {':userId' : params.userId}
             }).promise()
     }
 
-    async listPhotos(params: TaskKeyParams): Promise<PhotoEntry[]> {
+    async listPhotos(params: KeyParams): Promise<PhotoEntry[]> {
         const response = await this.documentClient
             .get({
                 TableName: this.props.taskTable,
                 Key: {
-                    id: params.id,
+                    id: params.taskId,
                 },
             }).promise()
         if (response.Item === undefined ||
@@ -145,36 +146,39 @@ export class TaskService {
         return response.Item.photos as PhotoEntry[]
     }
 
-    async listApplicants(params: TaskKeyParams): Promise<ApplicantProfile[]> {
+    async listApplicants(params: KeyParams): Promise<ApplicantProfile[]> {
+        if(!this.props.transactionTable){
+            throw new Error('The transaction table is not passed.')
+        }
         const response = await this.documentClient
-            .get({
-                TableName: this.props.taskTable,
-                Key: {
-                    id: params.id,
-                },
+            .query({
+                TableName: this.props.transactionTable,
+                IndexName: 'taskIdIndex',
+                KeyConditionExpression: 'taskId = :taskId and customerId = :customerId',
+                ExpressionAttributeValues: {
+                    ':taskId': params.taskId,
+                    ':customerId': params.userId
+                }
             }).promise()
-        const task = response.Item
-        if(!task || !task.applicants){
+        const transactions: TransactionEntity[] = response?.Items as TransactionEntity[]
+        if(!transactions){
             return []
         }
         let userIds = []
-        let applicants = []
 
-        if (task && task.applicants && task.userId === params.userId) {
-            applicants = task.applicants
-            for (let i = 0; i < task.applicants.length; i++) {
-                userIds.push({userId: task.applicants[i].userId})
+        if (transactions) {
+            for (let i = 0; i < transactions.length; i++) {
+                userIds.push({userId: transactions[i].workerId})
             }
         }
 
         const profiles = await this.batchGetProfiles(userIds)
         const applicantProfiles : ApplicantProfile[] = []
 
-        for (let i = 0; i < applicants.length; i++) {
-            const profile = profiles.get(applicants[i].userId)
+        for (let i = 0; i < transactions.length; i++) {
+            const profile = profiles.get(transactions[i].workerId)
             const ap : ApplicantProfile = {
-                userId: applicants[i].userId,
-                applicant: applicants[i],
+                transaction: transactions[i],
                 name: ( profile && profile.name ?
                     profile.name: ''),
                 location: ( profile ?
@@ -211,47 +215,56 @@ export class TaskService {
         return profiles
     }
 
-    async applyForTask(params: TaskKeyParams): Promise<any> {
+    async applyForTask(params: KeyParams): Promise<any> {
         const now = new Date()
         if(!params.applicantId){
             throw new Error('The applicant id is undefined.')
         }
-        const newApplicant: Applicant = {
-            userId: params.applicantId,
-            appliedDateTime: now.toISOString(),
-            applicationStatus: 'applied'
+        if(!params.taskId){
+            throw new Error('The task id is undefined.')
         }
-        const response = await this.documentClient
+        if(!this.props.transactionTable){
+            throw new Error('The transaction table is not passed.')
+        }
+
+        const transactionResponse = await this.documentClient
+            .query({
+                TableName: this.props.transactionTable,
+                IndexName: 'taskIdIndex',
+                KeyConditionExpression: 'taskId = :taskId and workerId = :workerId',
+                ExpressionAttributeValues: {
+                    ':taskId': params.taskId,
+                    ':workerId': params.applicantId
+                }
+            }).promise()
+        const transaction = transactionResponse.Items
+        if(transaction && transaction[0]){
+            throw new Error('The applicant has already applied.')
+        }
+
+        const taskResponse = await this.documentClient
             .get({
                 TableName: this.props.taskTable,
                 Key: {
-                    id: params.id,
+                    id: params.taskId,
                 },
             }).promise()
-        const task = response.Item
+        const task = taskResponse.Item
 
         if (task) {
-            if(task.applicants){
-                const index = task.applicants
-                    .findIndex((item: Applicant) => item.userId === params.applicantId)
-                if(index > -1){
-                    throw new Error('The applicant has already applied.')
-                }
+            const newTransaction: TransactionEntity = {
+                id: uuidv4(),
+                customerId: task.userId,
+                taskId: params.taskId,
+                workerId: params.applicantId,
+                createdAt: now.toISOString(),
+                status: 'applied'
             }
-            // If the user withdraw and wanted to reapply, the current code won't let it happen.
 
             await this.documentClient
-                .update({
-                    TableName: this.props.taskTable,
-                    Key: {
-                        id: params.id,
-                    },
-                    UpdateExpression: 'set applicants=list_append(' +
-                        'if_not_exists(applicants, :empty_list), :newApplicants)',
-                    ExpressionAttributeValues : {
-                        ':empty_list': [],
-                        ':newApplicants': [newApplicant]
-                    }
+                .put({
+                    TableName: this.props.transactionTable,
+                    Item: newTransaction,
                 }).promise()
         } else {
             throw new Error('The task does not exist.')
@@ -259,124 +272,86 @@ export class TaskService {
         return {}
     }
 
-    async withdrawApplication(params: TaskKeyParams): Promise<PhotoEntry | {}> {
-        const response = await this.documentClient
-            .get({
-                TableName: this.props.taskTable,
-                Key: {
-                    id: params.id,
-                },
-            }).promise()
-        const task = response.Item
-
-        if (task && task.applicants) {
-            const index = task.applicants
-                .findIndex((item: Applicant) => item.userId === params.applicantId)
-            if(index === -1){
-                throw new Error('The application id was not found.')
-            }
-
-            await this.documentClient
-                .update({
-                    TableName: this.props.taskTable,
-                    Key: {
-                        id: params.id,
-                    },
-                    UpdateExpression: `set applicants[${index}].applicationStatus=:applicationStatus`,
-                    ExpressionAttributeValues : {
-                        ':applicationStatus': 'withdrawn'
-                    }
-                }).promise()
-        } else {
-            throw new Error('The task or applicant does not exist.')
+    async withdrawApplication(params: KeyParams): Promise<any> {
+        const now = new Date()
+        if(!this.props.transactionTable){
+            throw new Error('The transaction table is not passed.')
         }
+        await this.documentClient
+            .update({
+                TableName: this.props.transactionTable,
+                Key: {
+                    id: params.transactionId,
+                },
+                UpdateExpression: `set status = :applicationStatus`,
+                ConditionExpression: 'workerId = :workerId ' +
+                    'and workerId = :workerId and taskId = :taskId',
+                ExpressionAttributeValues : {
+                    ':applicationStatus': 'withdrawn',
+                    ':lastUpdatedAt': now.toISOString(),
+                    ':workerId': params.userId,
+                    ':taskId': params.taskId,
+                }
+            }).promise()
         return {}
     }
 
-    async acceptApplication(params: TaskKeyParams): Promise<PhotoEntry | {}> {
-        const response = await this.documentClient
-            .get({
-                TableName: this.props.taskTable,
-                Key: {
-                    id: params.id,
-                },
-            }).promise()
-        const task = response.Item
-
-        if (task && task.applicants) {
-            const index = task.applicants
-                .findIndex((item: Applicant) => item.userId === params.applicantId)
-            if(index === -1){
-                throw new Error('The application id was not found.')
-            }
-            if(task.applicants[index].applicationStatus !== 'applied'){
-                throw new Error('The applicant status is not active.')
-            }
-
-            await this.documentClient
-                .update({
-                    TableName: this.props.taskTable,
-                    Key: {
-                        id: params.id,
-                    },
-                    ConditionExpression: 'userId = :userId',
-                    UpdateExpression: `set applicants[${index}].applicationStatus=:applicationStatus`,
-                    ExpressionAttributeValues : {
-                        ':userId': params.userId,
-                        ':applicationStatus': 'acceptedToStart'
-                    }
-                }).promise()
-        } else {
-            throw new Error('The task or applicant does not exist.')
+    async acceptApplication(params: KeyParams): Promise<any> {
+        const now = new Date()
+        if(!this.props.transactionTable){
+            throw new Error('The transaction table is not passed.')
         }
+        await this.documentClient
+            .update({
+                TableName: this.props.transactionTable,
+                Key: {
+                    id: params.transactionId,
+                },
+                UpdateExpression: `set status = :applicationStatus and lastUpdatedAt = :lastUpdatedAt`,
+                ConditionExpression: 'customerId = :customerId ' +
+                    'and workerId = :workerId and taskId = :taskId',
+                ExpressionAttributeValues : {
+                    ':applicationStatus': 'acceptApplication',
+                    ':lastUpdatedAt': now.toISOString(),
+                    ':customerId': params.userId,
+                    ':workerId': params.applicantId,
+                    ':taskId': params.taskId,
+                }
+            }).promise()
         return {}
     }
 
-    async rejectApplication(params: TaskKeyParams): Promise<PhotoEntry | {}> {
-        const response = await this.documentClient
-            .get({
-                TableName: this.props.taskTable,
-                Key: {
-                    id: params.id,
-                },
-            }).promise()
-        const task = response.Item
-
-        if (task && task.applicants) {
-            const index = task.applicants
-                .findIndex((item: Applicant) => item.userId === params.applicantId)
-            if(index === -1){
-                throw new Error('The application id was not found.')
-            }
-            if(task.applicants[index].applicationStatus !== 'applied'){
-                throw new Error('The applicant status is not active.')
-            }
-
-            await this.documentClient
-                .update({
-                    TableName: this.props.taskTable,
-                    Key: {
-                        id: params.id,
-                    },
-                    ConditionExpression: 'userId = :userId',
-                    UpdateExpression: `set applicants[${index}].applicationStatus=:applicationStatus`,
-                    ExpressionAttributeValues : {
-                        ':userId': params.userId,
-                        ':applicationStatus': 'rejected'
-                    }
-                }).promise()
-        } else {
-            throw new Error('The task or applicant does not exist.')
+    async rejectApplication(params: KeyParams): Promise<PhotoEntry | {}> {
+        const now = new Date()
+        if(!this.props.transactionTable){
+            throw new Error('The transaction table is not passed.')
         }
+        await this.documentClient
+            .update({
+                TableName: this.props.transactionTable,
+                Key: {
+                    id: params.transactionId,
+                },
+                UpdateExpression: `set status = :applicationStatus and lastUpdatedAt = :lastUpdatedAt`,
+                ConditionExpression: 'customerId = :customerId ' +
+                    'and workerId = :workerId and taskId = :taskId ',
+                ExpressionAttributeValues : {
+                    ':applicationStatus': 'rejected',
+                    ':lastUpdatedAt': now.toISOString(),
+                    ':customerId': params.userId,
+                    ':workerId': params.applicantId,
+                    ':taskId': params.taskId,
+                }
+            }).promise()
         return {}
     }
 
-    async getPhoto(params: TaskKeyParams, photoParams: PhotoEntry): Promise<PhotoEntry | {}> {
+    async getPhoto(params: KeyParams, photoParams: PhotoEntry): Promise<PhotoEntry | {}> {
         const response = await this.documentClient
             .get({
                 TableName: this.props.taskTable,
                 Key: {
-                    id: params.id,
+                    id: params.taskId,
                 },
             }).promise()
         if (response.Item && response.Item.photos &&
@@ -390,12 +365,12 @@ export class TaskService {
         return {}
     }
 
-    async addPhoto(params: TaskKeyParams, photoParams: PhotoEntry): Promise<PhotoEntry> {
+    async addPhoto(params: KeyParams, photoParams: PhotoEntry): Promise<PhotoEntry> {
         const photoId = uuidv4()
         const newPhoto = {
             photoId: photoId,
             bucket: this.props.bucket,
-            key: `${params.id}/photos/${photoId}`,
+            key: `${params.taskId}/photos/${photoId}`,
             type: photoParams.type,
             identityId: photoParams.identityId
         }
@@ -403,7 +378,7 @@ export class TaskService {
             .update({
                 TableName: this.props.taskTable,
                 Key: {
-                    id: params.id,
+                    id: params.taskId,
                 },
                 ConditionExpression: 'userId = :userId',
                 UpdateExpression: 'set photos=list_append(if_not_exists(photos, :empty_list), :newPhotos)',
@@ -417,12 +392,12 @@ export class TaskService {
         return newPhoto
     }
 
-    async deletePhoto(params: TaskKeyParams, photoParams: PhotoEntry) {
+    async deletePhoto(params: KeyParams, photoParams: PhotoEntry) {
         const response = await this.documentClient
             .get({
                 TableName: this.props.taskTable,
                 Key: {
-                    id: params.id,
+                    id: params.taskId,
                 },
             }).promise()
         const profile = response.Item
@@ -434,7 +409,7 @@ export class TaskService {
                 .update({
                     TableName: this.props.taskTable,
                     Key: {
-                        id: params.id,
+                        id: params.taskId,
                     },
                     ConditionExpression: 'userId = :userId',
                     UpdateExpression: `REMOVE photos[${indexToRemove}]`,

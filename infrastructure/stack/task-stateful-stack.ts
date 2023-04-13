@@ -9,14 +9,16 @@ import {Effect, PolicyStatement, Role} from "aws-cdk-lib/aws-iam";
 
 
 export class TaskStatefulStack extends Stack {
-    public dynamodbTable: GenericDynamoTable
+    public taskTable: GenericDynamoTable
+    public transactionTable: GenericDynamoTable
     public taskImageBucket: Bucket
     private suffix: string;
 
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
         this.initializeSuffix()
-        this.initializeDynamoDBTable()
+        this.initializeTaskDynamoDBTable()
+        this.initializeTransactionDynamoDBTable()
         this.initializeTaskPhotosBucket()
         this.initializeBucketPolicies()
     }
@@ -27,8 +29,8 @@ export class TaskStatefulStack extends Stack {
         this.suffix = Suffix;
     }
 
-    private initializeDynamoDBTable() {
-        this.dynamodbTable = new GenericDynamoTable(this,
+    private initializeTaskDynamoDBTable() {
+        this.taskTable = new GenericDynamoTable(this,
             'TaskDynamoDBTable', {
             removalPolicy: RemovalPolicy.DESTROY,
             tableName: `Task-${config.envName}-${this.suffix}`,
@@ -36,20 +38,52 @@ export class TaskStatefulStack extends Stack {
             primaryKey: 'id',
             keyType: AttributeType.STRING
         })
-        this.dynamodbTable.addGlobalSecondaryIndexes({
+        this.taskTable.addGlobalSecondaryIndexes({
             indexName: 'userIdIndex',
             partitionKeyName: 'userId',
             partitionKeyType: AttributeType.STRING,
         })
-        this.dynamodbTable.addGlobalSecondaryIndexes({
+        this.taskTable.addGlobalSecondaryIndexes({
             indexName: 'categoryIndex',
             partitionKeyName: 'category',
             partitionKeyType: AttributeType.STRING,
         })
-        this.dynamodbTable.addGlobalSecondaryIndexes({
+        this.taskTable.addGlobalSecondaryIndexes({
             indexName: 'locationIndex',
             partitionKeyName: 'city',
             partitionKeyType: AttributeType.STRING,
+        })
+    }
+
+    private initializeTransactionDynamoDBTable() {
+        this.transactionTable = new GenericDynamoTable(this,
+            'TransactionDynamoDBTable', {
+                removalPolicy: RemovalPolicy.DESTROY,
+                tableName: `Transaction-${config.envName}-${this.suffix}`,
+                stream: StreamViewType.NEW_AND_OLD_IMAGES,
+                primaryKey: 'id',
+                keyType: AttributeType.STRING
+            })
+        this.transactionTable.addGlobalSecondaryIndexes({
+            indexName: 'customerIdIndex',
+            partitionKeyName: 'customerId',
+            partitionKeyType: AttributeType.STRING,
+            sortKeyName: 'lastUpdatedAt',
+            sortKeyType: AttributeType.STRING,
+        })
+        this.transactionTable.addGlobalSecondaryIndexes({
+            indexName: 'workerIdIndex',
+            partitionKeyName: 'workerId',
+            partitionKeyType: AttributeType.STRING,
+            sortKeyName: 'lastUpdatedAt',
+            sortKeyType: AttributeType.STRING,
+        })
+        this.transactionTable.addGlobalSecondaryIndexes({
+            indexName: 'taskIdIndex',
+            partitionKeyName: 'taskId',
+            partitionKeyType: AttributeType.STRING,
+            sortKeyName: 'workerId',
+            sortKeyType: AttributeType.STRING,
         })
     }
 

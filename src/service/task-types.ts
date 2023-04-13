@@ -1,7 +1,8 @@
-export interface TaskKeyParams {
-    id: string
+export interface KeyParams {
+    transactionId?: string
     userId?: string
     applicantId?: string
+    taskId?: string
 }
 export interface PhotoEntry {
     photoId: string
@@ -17,15 +18,8 @@ export interface Location {
     locationName: string
 }
 
-export interface Applicant {
-    userId: string
-    appliedDateTime: string
-    applicationStatus: string
-}
-
 export interface ApplicantProfile {
-    userId: string
-    applicant?: Applicant
+    transaction?: TransactionEntity
     name: string
     location: Location
     profilePhoto: PhotoEntry
@@ -40,7 +34,6 @@ export interface TaskEntity {
     description: string
     createdDateTime: string
     validTillDateTime: string
-    applicants: [Applicant]
     photos: [PhotoEntry]
     location: Location
     city: string
@@ -49,4 +42,17 @@ export interface TaskEntity {
     distance: number
     price: number,
     priceUnit: string
+}
+
+export interface TransactionEntity {
+    id: string
+    createdAt: string
+    lastUpdatedAt?: string
+    lastMessage?: string
+    taskId: string
+    customerId: string
+    workerId: string
+    status: string
+    price?: string
+    paymentTransactionId?: string
 }

@@ -29,10 +29,10 @@ export async function handler(event: APIGatewayProxyEvent, context: Context):
         body: 'Hello From Api!'
     }
     try {
-        const id = getPathParameter(event, 'id')
+        const taskId = getPathParameter(event, 'id')
         const sub = getSub(event)
         const res = await service.delete({
-            id: id,
+            taskId: taskId,
             userId: sub
         })
         result.body = JSON.stringify(res)

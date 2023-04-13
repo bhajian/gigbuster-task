@@ -6,13 +6,15 @@ import {
 import {getEventBody, getPathParameter, getSub} from "../lib/utils";
 import {Env} from "../lib/env";
 import {TaskService} from "../service/task-service";
-import {PhotoEntry, TaskKeyParams} from "../service/task-types";
+import {PhotoEntry, KeyParams} from "../service/task-types";
 
-const table = Env.get('TABLE')
+const taskTable = Env.get('TASK_TABLE')
+const transactionTable = Env.get('TRANSACTION_TABLE')
 const bucket = Env.get('IMAGE_BUCKET')
 const service = new TaskService({
     profileTable: "",
-    taskTable: table,
+    taskTable: taskTable,
+    transactionTable: transactionTable,
     bucket: bucket
 })
 
@@ -28,12 +30,11 @@ export async function handler(event: APIGatewayProxyEvent, context: Context):
         body: 'Empty!'
     }
     try {
-        const id = getPathParameter(event, 'id')
         const sub = getSub(event)
+        const taskId = getPathParameter(event, 'id')
 
         await service.applyForTask({
-            id: id,
-            userId: undefined,
+            taskId: taskId,
             applicantId: sub
         })
         result.body = JSON.stringify({success: true})

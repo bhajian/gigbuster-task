@@ -16,7 +16,8 @@ export class TaskApiStack extends Stack {
               props?: cdk.StackProps) {
     super(scope, id, props);
     this.taskApis = new TaskApis(this,id, {
-      taskTable: reviewableApiProps.taskApiStatefulStack.dynamodbTable,
+      taskTable: reviewableApiProps.taskApiStatefulStack.taskTable,
+      transactionTable: reviewableApiProps.taskApiStatefulStack.transactionTable,
       taskImageBucket: reviewableApiProps.taskApiStatefulStack.taskImageBucket
     })
   }
