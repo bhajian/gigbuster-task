@@ -154,10 +154,9 @@ export class TaskService {
             .query({
                 TableName: this.props.transactionTable,
                 IndexName: 'taskIdIndex',
-                KeyConditionExpression: 'taskId = :taskId and customerId = :customerId',
+                KeyConditionExpression: 'taskId = :taskId',
                 ExpressionAttributeValues: {
                     ':taskId': params.taskId,
-                    ':customerId': params.userId
                 }
             }).promise()
         const transactions: TransactionEntity[] = response?.Items as TransactionEntity[]
@@ -230,7 +229,7 @@ export class TaskService {
         const transactionResponse = await this.documentClient
             .query({
                 TableName: this.props.transactionTable,
-                IndexName: 'taskIdIndex',
+                IndexName: 'taskWorkerIdIndex',
                 KeyConditionExpression: 'taskId = :taskId and workerId = :workerId',
                 ExpressionAttributeValues: {
                     ':taskId': params.taskId,
@@ -266,6 +265,7 @@ export class TaskService {
                     TableName: this.props.transactionTable,
                     Item: newTransaction,
                 }).promise()
+            return newTransaction
         } else {
             throw new Error('The task does not exist.')
         }

@@ -82,6 +82,11 @@ export class TaskStatefulStack extends Stack {
             indexName: 'taskIdIndex',
             partitionKeyName: 'taskId',
             partitionKeyType: AttributeType.STRING,
+        })
+        this.transactionTable.addGlobalSecondaryIndexes({
+            indexName: 'taskWorkerIdIndex',
+            partitionKeyName: 'taskId',
+            partitionKeyType: AttributeType.STRING,
             sortKeyName: 'workerId',
             sortKeyType: AttributeType.STRING,
         })

@@ -360,6 +360,7 @@ export class TaskApis extends GenericApi {
         props.taskTable.grantFullAccess(this.acceptApi.grantPrincipal)
         props.taskTable.grantFullAccess(this.rejectApi.grantPrincipal)
 
+        props.transactionTable.grantFullAccess(this.listApplicantApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.applyApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.withdrawApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.acceptApi.grantPrincipal)
