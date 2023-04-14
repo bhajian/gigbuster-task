@@ -180,6 +180,8 @@ export class TaskService {
                 transaction: transactions[i],
                 name: ( profile && profile.name ?
                     profile.name: ''),
+                accountCode: ( profile && profile.accountCode ?
+                    profile.accountCode: ''),
                 location: ( profile ?
                     profile.location: undefined),
                 profilePhoto: ( profile && profile.photos ?
@@ -283,9 +285,13 @@ export class TaskService {
                 Key: {
                     id: params.transactionId,
                 },
-                UpdateExpression: `set status = :applicationStatus`,
+                UpdateExpression: 'set #status = :applicationStatus, ' +
+                    'lastUpdatedAt = :lastUpdatedAt',
                 ConditionExpression: 'workerId = :workerId ' +
                     'and workerId = :workerId and taskId = :taskId',
+                ExpressionAttributeNames: {
+                    '#status': 'status'
+                },
                 ExpressionAttributeValues : {
                     ':applicationStatus': 'withdrawn',
                     ':lastUpdatedAt': now.toISOString(),
@@ -307,9 +313,13 @@ export class TaskService {
                 Key: {
                     id: params.transactionId,
                 },
-                UpdateExpression: `set status = :applicationStatus and lastUpdatedAt = :lastUpdatedAt`,
+                UpdateExpression: 'set #status = :applicationStatus, ' +
+                    'lastUpdatedAt = :lastUpdatedAt',
                 ConditionExpression: 'customerId = :customerId ' +
                     'and workerId = :workerId and taskId = :taskId',
+                ExpressionAttributeNames: {
+                    '#status': 'status'
+                },
                 ExpressionAttributeValues : {
                     ':applicationStatus': 'acceptApplication',
                     ':lastUpdatedAt': now.toISOString(),
@@ -332,9 +342,13 @@ export class TaskService {
                 Key: {
                     id: params.transactionId,
                 },
-                UpdateExpression: `set status = :applicationStatus and lastUpdatedAt = :lastUpdatedAt`,
+                UpdateExpression: 'set #status = :applicationStatus, ' +
+                    'lastUpdatedAt = :lastUpdatedAt',
                 ConditionExpression: 'customerId = :customerId ' +
                     'and workerId = :workerId and taskId = :taskId ',
+                ExpressionAttributeNames: {
+                    '#status': 'status'
+                },
                 ExpressionAttributeValues : {
                     ':applicationStatus': 'rejected',
                     ':lastUpdatedAt': now.toISOString(),

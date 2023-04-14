@@ -21,6 +21,7 @@ export interface Location {
 export interface ApplicantProfile {
     transaction?: TransactionEntity
     name: string
+    accountCode:string
     location: Location
     profilePhoto: PhotoEntry
 }
