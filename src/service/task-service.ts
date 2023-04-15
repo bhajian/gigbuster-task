@@ -81,6 +81,8 @@ export class TaskService {
             complexTasks.push({
                 ...tasks[i],
                 name: (profile && profile.name? profile.name : ''),
+                accountCode: ( profile && profile.accountCode ?
+                    profile.accountCode: ''),
                 location: (profile && profile.location ? profile.location : {}),
                 profilePhoto: ( profile && profile.photos && profile.photos[0] ?
                     profile.photos[0]: undefined)
@@ -202,8 +204,6 @@ export class TaskService {
         return applicantProfiles
     }
 
-
-
     async applyForTask(params: KeyParams): Promise<any> {
         const now = new Date()
         if(!params.applicantId){
@@ -247,6 +247,7 @@ export class TaskService {
                 taskId: params.taskId,
                 workerId: params.applicantId,
                 createdAt: now.toISOString(),
+                lastUpdatedAt: now.toISOString(),
                 status: 'applied'
             }
 
@@ -525,12 +526,16 @@ export class TaskService {
                     customerProfile.location : ''),
                 customerProfilePhoto: ( customerProfile && customerProfile.photos ?
                     customerProfile.photos[0]: undefined),
+                customerAccountCode: ( customerProfile && customerProfile.accountCode ?
+                    customerProfile.accountCode: ''),
                 workerName: (workerProfile && workerProfile.name ?
-                    customerProfile.name : ''),
+                    workerProfile.name : ''),
                 workerLocation: (workerProfile && workerProfile.location ?
-                    customerProfile.location : ''),
+                    workerProfile.location : ''),
                 workerProfilePhoto: ( workerProfile && workerProfile.photos ?
-                    customerProfile.photos[0]: undefined),
+                    workerProfile.photos[0]: undefined),
+                workerAccountCode: ( workerProfile && workerProfile.accountCode ?
+                    workerProfile.accountCode: ''),
                 task: task
             })
         }
