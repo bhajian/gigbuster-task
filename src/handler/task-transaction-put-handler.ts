@@ -3,16 +3,18 @@ import {
     APIGatewayProxyResult,
     APIGatewayProxyEvent
 } from 'aws-lambda';
+import {getEventBody, getPathParameter, getSub} from "../lib/utils";
 import {Env} from "../lib/env";
 import {TaskService} from "../service/task-service";
-import {getQueryString, getSub} from "../lib/utils";
+import {TaskEntity} from "../service/task-types";
 
-const table = Env.get('TABLE')
+const taskTable = Env.get('TASK_TABLE')
+const transactionTable = Env.get('TRANSACTION_TABLE')
 const bucket = Env.get('IMAGE_BUCKET')
-const profileTable = Env.get('PROFILE_TABLE')
 const service = new TaskService({
-    profileTable: profileTable,
-    taskTable: table,
+    profileTable: "",
+    taskTable: taskTable,
+    transactionTable: transactionTable,
     bucket: bucket
 })
 
@@ -26,23 +28,18 @@ export async function handler(event: APIGatewayProxyEvent, context: Context):
             'Access-Control-Allow-Headers': '*',
             'Access-Control-Allow-Methods': '*'
         },
-        body: ''
+        body: 'Hello From Todo Edit Api!'
     }
-    try{
-        const userId = getSub(event)
-        const limit = getQueryString(event, 'limit')
-        const lastEvaluatedKey = getQueryString(event, 'lastEvaluatedKey')
-        const items = await service.query({
-            userId: userId,
-            limit: limit,
-            lastEvaluatedKey: lastEvaluatedKey
-        })
-        result.body = JSON.stringify(items)
-        return result
-    }
-    catch (e) {
+    try {
+
+        const item = getEventBody(event) as TaskEntity
+        const sub = getSub(event)
+
+        const res = await service.putTransaction(item)
+        result.body = JSON.stringify(res)
+    } catch (error) {
         result.statusCode = 500
-        result.body = e.message
+        result.body = error.message
     }
     return result
 }

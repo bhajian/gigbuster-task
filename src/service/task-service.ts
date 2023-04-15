@@ -7,7 +7,7 @@ import {
     KeyParams, TransactionEntity
 } from "./task-types";
 
-interface ReviewableServiceProps{
+interface TaskServiceProps{
     taskTable: string
     transactionTable?: string
     profileTable: string
@@ -16,10 +16,10 @@ interface ReviewableServiceProps{
 
 export class TaskService {
 
-    private props: ReviewableServiceProps
+    private props: TaskServiceProps
     private documentClient = new DocumentClient()
 
-    public constructor(props: ReviewableServiceProps){
+    public constructor(props: TaskServiceProps){
         this.props = props
     }
 
@@ -29,7 +29,11 @@ export class TaskService {
                 TableName: this.props.taskTable,
                 IndexName: 'userIdIndex',
                 KeyConditionExpression: 'userId = :userId',
-                ExpressionAttributeValues : {':userId' : userId}
+                FilterExpression: 'taskStatus = :taskStatus',
+                ExpressionAttributeValues : {
+                    ':userId' : userId,
+                    ':taskStatus': 'active'
+                },
             }).promise()
         if (response.Items === undefined) {
             return [] as TaskEntity[]
@@ -43,8 +47,11 @@ export class TaskService {
                 TableName: this.props.taskTable,
                 ProjectionExpression: 'id, country, stateProvince, city, userId, ' +
                     'price, priceUnit, category, description, taskStatus, photos',
-                FilterExpression: 'userId <> :userId',
-                ExpressionAttributeValues : {':userId' : params.userId},
+                FilterExpression: 'userId <> :userId and taskStatus = :taskStatus',
+                ExpressionAttributeValues : {
+                    ':userId' : params.userId,
+                    ':taskStatus': 'active'
+                },
                 Limit: params.Limit,
                 ExclusiveStartKey: params.lastEvaluatedKey
             }).promise()
@@ -66,7 +73,7 @@ export class TaskService {
             }
         }
 
-        const profiles = await this.batchGetProfiles(userIds)
+        const {profiles} = await this.batchGetProfiles(userIds, [])
         const complexTasks : any[] = []
 
         for (let i = 0; i < tasks.length; i++) {
@@ -79,7 +86,6 @@ export class TaskService {
                     profile.photos[0]: undefined)
             })
         }
-
         return complexTasks
     }
 
@@ -119,14 +125,18 @@ export class TaskService {
     }
 
     async delete(params: KeyParams) {
-        const response = await this.documentClient
-            .delete({
+        await this.documentClient
+            .update({
                 TableName: this.props.taskTable,
                 Key: {
                     id: params.taskId,
                 },
                 ConditionExpression: 'userId = :userId',
-                ExpressionAttributeValues : {':userId' : params.userId}
+                UpdateExpression: 'set taskStatus = :taskStatus',
+                ExpressionAttributeValues : {
+                    ':userId': params.userId,
+                    ':taskStatus': 'inactive',
+                }
             }).promise()
     }
 
@@ -171,7 +181,7 @@ export class TaskService {
             }
         }
 
-        const profiles = await this.batchGetProfiles(userIds)
+        const {profiles} = await this.batchGetProfiles(userIds, [])
         const applicantProfiles : ApplicantProfile[] = []
 
         for (let i = 0; i < transactions.length; i++) {
@@ -192,29 +202,7 @@ export class TaskService {
         return applicantProfiles
     }
 
-    async batchGetProfiles(userIds: any): Promise<any> {
-        const requestItems: any = {}
-        let profiles = new Map<string, any>()
-        if (userIds.length === 0 ){
-            return profiles
-        }
 
-        requestItems[this.props.profileTable] = {
-            Keys: userIds
-        }
-        const userResponse = await this.documentClient
-            .batchGet({
-                RequestItems: requestItems
-            }).promise()
-        let rawProfiles: any = []
-        if(userResponse && userResponse.Responses && userResponse.Responses[this.props.profileTable]){
-            rawProfiles = userResponse.Responses[this.props.profileTable]
-            for(let i=0; i< rawProfiles.length; i++){
-                profiles.set(rawProfiles[i].userId, rawProfiles[i])
-            }
-        }
-        return profiles
-    }
 
     async applyForTask(params: KeyParams): Promise<any> {
         const now = new Date()
@@ -321,7 +309,7 @@ export class TaskService {
                     '#status': 'status'
                 },
                 ExpressionAttributeValues : {
-                    ':applicationStatus': 'acceptApplication',
+                    ':applicationStatus': 'applicationAccepted',
                     ':lastUpdatedAt': now.toISOString(),
                     ':customerId': params.userId,
                     ':workerId': params.applicantId,
@@ -431,6 +419,162 @@ export class TaskService {
                         ':userId': params.userId,
                     }
                 }).promise()
+        }
+    }
+
+    async putTransaction(params: TaskEntity): Promise<TaskEntity> {
+        if(!this.props.transactionTable){
+            throw new Error('The transaction table is not passed.')
+        }
+        const response = await this.documentClient
+            .put({
+                TableName: this.props.transactionTable,
+                Item: params,
+                ConditionExpression: 'userId = :userId',
+                ExpressionAttributeValues : {':userId' : params.userId}
+            }).promise()
+        return params
+    }
+
+    async queryTransaction(params: any): Promise<any> {
+        if(!this.props.transactionTable){
+            throw new Error('The transaction table is not passed.')
+        }
+        let transactionComplex = undefined
+        if(params?.type === 'CONSUMER'){
+            const response = await this.documentClient
+                .query({
+                    TableName: this.props.transactionTable,
+                    IndexName: 'customerIdIndex',
+                    KeyConditionExpression: 'customerId = :customerId',
+                    ExpressionAttributeValues: {
+                        ':customerId': params.userId
+                    },
+                    ScanIndexForward: false,
+                    Limit: params.Limit,
+                    ExclusiveStartKey: params.lastEvaluatedKey
+                }).promise()
+            transactionComplex = response?.Items
+        }
+        if(params?.type === 'WORKER'){
+            const response = await this.documentClient
+                .query({
+                    TableName: this.props.transactionTable,
+                    IndexName: 'workerIdIndex',
+                    KeyConditionExpression: 'workerId = :workerId',
+                    ExpressionAttributeValues: {
+                        ':workerId': params.userId
+                    },
+                    ScanIndexForward: false,
+                    Limit: params.Limit,
+                    ExclusiveStartKey: params.lastEvaluatedKey
+                }).promise()
+            transactionComplex = response?.Items
+        }
+        transactionComplex = await this.mergeTransactions(transactionComplex)
+        return transactionComplex
+    }
+
+    async mergeTransactions(transactions: any): Promise<any> {
+        let userIds = []
+        let taskIds: any[] = []
+        let userIdMap = new Map<string, any>()
+        let taskIdMap = new Map<string, any>()
+
+        if (!transactions || transactions.length === 0) {
+            return undefined
+        }
+
+        for (let i = 0; i < transactions.length; i++) {
+            const workerId = transactions[i].workerId
+            const customerId = transactions[i].customerId
+            const taskId = transactions[i].taskId
+
+            if(userIdMap.has(workerId)){
+            } else {
+                userIds.push({userId: workerId})
+                userIdMap.set(workerId, undefined)
+            }
+
+            if(userIdMap.has(customerId)){
+            } else {
+                userIds.push({userId: customerId})
+                userIdMap.set(customerId, undefined)
+            }
+
+            if(taskIdMap.has(taskId)){
+            } else {
+                taskIds.push({id: taskId})
+                taskIdMap.set(taskId, undefined)
+            }
+
+        }
+
+        const {profiles, tasks} = await this.batchGetProfiles(userIds, taskIds)
+        const complexTransactions : any[] = []
+
+        for (let i = 0; i < transactions.length; i++) {
+            const workerProfile = profiles.get(transactions[i].workerId)
+            const customerProfile = profiles.get(transactions[i].customerId)
+            const task = tasks.get(transactions[i].taskId)
+            complexTransactions.push({
+                transaction: transactions[i],
+                customerName: (customerProfile && customerProfile.name ?
+                    customerProfile.name : ''),
+                customerLocation: (customerProfile && customerProfile.location ?
+                    customerProfile.location : ''),
+                customerProfilePhoto: ( customerProfile && customerProfile.photos ?
+                    customerProfile.photos[0]: undefined),
+                workerName: (workerProfile && workerProfile.name ?
+                    customerProfile.name : ''),
+                workerLocation: (workerProfile && workerProfile.location ?
+                    customerProfile.location : ''),
+                workerProfilePhoto: ( workerProfile && workerProfile.photos ?
+                    customerProfile.photos[0]: undefined),
+                task: task
+            })
+        }
+        return complexTransactions as any[]
+    }
+
+    async batchGetProfiles(userIds: any[], taskIds: any[]): Promise<any> {
+        const requestItems: any = {}
+        let profiles = new Map<string, any>()
+        let tasks = new Map<string, any>()
+        if (userIds?.length > 0) {
+            requestItems[this.props.profileTable] = {
+                Keys: userIds
+            }
+        }
+        if (taskIds?.length > 0) {
+            requestItems[this.props.taskTable] = {
+                Keys: taskIds
+            }
+        }
+        if(userIds?.length > 0 || taskIds?.length > 0){
+            const userResponse = await this.documentClient
+                .batchGet({
+                    RequestItems: requestItems
+                }).promise()
+            let rawProfiles: any = []
+            let rawTasks: any = []
+            if(userResponse && userResponse.Responses && userResponse.Responses[this.props.profileTable]){
+                rawProfiles = userResponse.Responses[this.props.profileTable]
+                for(let i=0; i< rawProfiles.length; i++){
+                    profiles.set(rawProfiles[i].userId, rawProfiles[i])
+                }
+            }
+            if(userResponse && userResponse.Responses && userResponse.Responses[this.props.taskTable]){
+                rawTasks = userResponse.Responses[this.props.taskTable]
+                for(let i=0; i< rawTasks.length; i++){
+                    tasks.set(rawTasks[i].id, rawTasks[i])
+                }
+            }
+        }
+
+        return {
+            profiles: profiles,
+            tasks: tasks,
         }
     }
 

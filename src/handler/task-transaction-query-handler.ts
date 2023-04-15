@@ -5,14 +5,16 @@ import {
 } from 'aws-lambda';
 import {Env} from "../lib/env";
 import {TaskService} from "../service/task-service";
-import {getQueryString, getSub} from "../lib/utils";
+import {getPathParameter, getQueryString, getSub} from "../lib/utils";
 
-const table = Env.get('TABLE')
-const bucket = Env.get('IMAGE_BUCKET')
+const taskTable = Env.get('TASK_TABLE')
+const transactionTable = Env.get('TRANSACTION_TABLE')
 const profileTable = Env.get('PROFILE_TABLE')
+const bucket = Env.get('IMAGE_BUCKET')
 const service = new TaskService({
+    taskTable: taskTable,
     profileTable: profileTable,
-    taskTable: table,
+    transactionTable: transactionTable,
     bucket: bucket
 })
 
@@ -30,10 +32,12 @@ export async function handler(event: APIGatewayProxyEvent, context: Context):
     }
     try{
         const userId = getSub(event)
+        const type = getQueryString(event, 'type')
         const limit = getQueryString(event, 'limit')
         const lastEvaluatedKey = getQueryString(event, 'lastEvaluatedKey')
-        const items = await service.query({
+        const items = await service.queryTransaction({
             userId: userId,
+            type: type,
             limit: limit,
             lastEvaluatedKey: lastEvaluatedKey
         })

@@ -30,6 +30,8 @@ export interface TaskApiProps {
     rootResource: IResource
     queryResource: IResource
     idResource: IResource,
+    transactionResource: IResource
+    transactionIdResource: IResource,
     photoResource: IResource
     photoIdResource: IResource
     applicantResource: IResource
@@ -51,6 +53,9 @@ export class TaskApis extends GenericApi {
     private withdrawApi: NodejsFunction
     private acceptApi: NodejsFunction
     private rejectApi: NodejsFunction
+
+    private transactionQueryApi: NodejsFunction
+    private transactionPutApi: NodejsFunction
 
     private addPhotoApi: NodejsFunction
     private deletePhotoApi: NodejsFunction
@@ -82,6 +87,9 @@ export class TaskApis extends GenericApi {
 
         const idResource = this.api.root.addResource('{id}')
         const queryResource = this.api.root.addResource('query')
+        const transactionResource = this.api.root.addResource('transaction')
+        const transactionIdResource = transactionResource
+            .addResource('{transactionId}')
         const applicantResource = idResource.addResource('applicant')
         const applyResource = idResource.addResource('apply')
         const withdrawResource = idResource.addResource('withdraw')
@@ -102,6 +110,8 @@ export class TaskApis extends GenericApi {
             idResource: idResource,
             queryResource: queryResource,
             rootResource: this.api.root,
+            transactionResource: transactionResource,
+            transactionIdResource: transactionIdResource,
             taskTable: props.taskTable.table,
             transactionTable: props.transactionTable.table,
             bucket: props.taskImageBucket
@@ -277,6 +287,39 @@ export class TaskApis extends GenericApi {
 
         ///////////////////
 
+        this.transactionQueryApi = this.addMethod({
+            functionName: 'task-transaction-query',
+            handlerName: 'task-transaction-query-handler.ts',
+            verb: 'GET',
+            resource: props.transactionResource,
+            environment: {
+                TASK_TABLE: props.taskTable.tableName,
+                TRANSACTION_TABLE: props.transactionTable.tableName,
+                PROFILE_TABLE: profileITable.tableName,
+                IMAGE_BUCKET: props.bucket.bucketName
+            },
+            validateRequestBody: false,
+            authorizationType: AuthorizationType.COGNITO,
+            authorizer: props.authorizer
+        })
+
+        this.transactionPutApi = this.addMethod({
+            functionName: 'task-transaction-put',
+            handlerName: 'task-transaction-put-handler.ts',
+            verb: 'PUT',
+            resource: props.transactionIdResource,
+            environment: {
+                TASK_TABLE: props.taskTable.tableName,
+                TRANSACTION_TABLE: props.transactionTable.tableName,
+                IMAGE_BUCKET: props.bucket.bucketName
+            },
+            validateRequestBody: false,
+            authorizationType: AuthorizationType.COGNITO,
+            authorizer: props.authorizer
+        })
+
+        ///////////////////
+
         this.listPhotosApi = this.addMethod({
             functionName: 'task-photo-list',
             handlerName: 'task-photo-list-handler.ts',
@@ -365,6 +408,8 @@ export class TaskApis extends GenericApi {
         props.transactionTable.grantFullAccess(this.withdrawApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.acceptApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.rejectApi.grantPrincipal)
+        props.transactionTable.grantFullAccess(this.transactionQueryApi.grantPrincipal)
+        props.transactionTable.grantFullAccess(this.transactionPutApi.grantPrincipal)
 
         props.taskTable.grantFullAccess(this.listApplicantApi.grantPrincipal)
         props.taskTable.grantFullAccess(this.setMainPhotoApi.grantPrincipal)
@@ -372,9 +417,11 @@ export class TaskApis extends GenericApi {
         props.taskTable.grantFullAccess(this.deletePhotoApi.grantPrincipal)
         props.taskTable.grantFullAccess(this.listPhotosApi.grantPrincipal)
         props.taskTable.grantFullAccess(this.getPhotosApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.transactionQueryApi.grantPrincipal)
 
         profileITable.grantFullAccess(this.listApplicantApi.grantPrincipal)
         profileITable.grantFullAccess(this.queryApi.grantPrincipal)
+        profileITable.grantFullAccess(this.transactionQueryApi.grantPrincipal)
     }
 
     public getProfileTable() : ITable {
