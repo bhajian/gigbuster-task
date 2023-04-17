@@ -6,7 +6,7 @@ import {
 import {getEventBody, getPathParameter, getSub} from "../lib/utils";
 import {Env} from "../lib/env";
 import {TaskService} from "../service/task-service";
-import {TaskEntity} from "../service/task-types";
+import {TaskEntity, TransactionEntity} from "../service/task-types";
 
 const taskTable = Env.get('TASK_TABLE')
 const transactionTable = Env.get('TRANSACTION_TABLE')
@@ -32,9 +32,11 @@ export async function handler(event: APIGatewayProxyEvent, context: Context):
     }
     try {
 
-        const item = getEventBody(event) as TaskEntity
+        const id = getPathParameter(event, 'transactionId')
+        const item = getEventBody(event) as TransactionEntity
         const sub = getSub(event)
-
+        item.customerId = sub
+        item.id = id
         const res = await service.putTransaction(item)
         result.body = JSON.stringify(res)
     } catch (error) {

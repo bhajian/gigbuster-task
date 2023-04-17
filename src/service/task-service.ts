@@ -246,6 +246,7 @@ export class TaskService {
                 customerId: task.userId,
                 taskId: params.taskId,
                 workerId: params.applicantId,
+                type: 'application',
                 createdAt: now.toISOString(),
                 lastUpdatedAt: now.toISOString(),
                 status: 'applied'
@@ -423,16 +424,67 @@ export class TaskService {
         }
     }
 
-    async putTransaction(params: TaskEntity): Promise<TaskEntity> {
+    async createTransaction(params: TransactionEntity, userId: string): Promise<any> {
         if(!this.props.transactionTable){
             throw new Error('The transaction table is not passed.')
         }
-        const response = await this.documentClient
+        const now = new Date().toISOString()
+        params.lastUpdatedAt = now
+        params.createdAt = now
+        params.status = 'initiated'
+        params.id = uuidv4()
+        if(params.type === 'referral'){
+            params.referrerId = userId
+        }
+        if(params.type === 'requestForGig'){
+            params.customerId = userId
+        }
+        await this.documentClient
             .put({
                 TableName: this.props.transactionTable,
                 Item: params,
-                ConditionExpression: 'userId = :userId',
-                ExpressionAttributeValues : {':userId' : params.userId}
+            }).promise()
+        return params
+    }
+
+    async putTransaction(params: TransactionEntity): Promise<any> {
+        if(!this.props.transactionTable){
+            throw new Error('The transaction table is not passed.')
+        }
+        const now = new Date().toISOString()
+        params.lastUpdatedAt = now
+        await this.documentClient
+            .put({
+                TableName: this.props.transactionTable,
+                Item: params,
+                ConditionExpression: 'customerId = :customerId',
+                ExpressionAttributeValues : {
+                    ':customerId' : params.customerId
+                }
+            }).promise()
+        return params
+    }
+
+    async deleteTransaction(params: TransactionEntity): Promise<any> {
+        if(!this.props.transactionTable){
+            throw new Error('The transaction table is not passed.')
+        }
+        const now = new Date().toISOString()
+        await this.documentClient
+            .update({
+                TableName: this.props.transactionTable,
+                Key: {
+                    id: params.id,
+                },
+                UpdateExpression: 'set #status = :status ' +
+                    'and lastUpdatedAt = :lastUpdatedAt',
+                ExpressionAttributeNames: {
+                    '#status' : 'status'
+                },
+                ExpressionAttributeValues : {
+                    ':status': 'terminated',
+                    ':lastUpdatedAt': now,
+                }
             }).promise()
         return params
     }
@@ -442,7 +494,22 @@ export class TaskService {
             throw new Error('The transaction table is not passed.')
         }
         let transactionComplex = undefined
-        if(params?.type === 'CONSUMER'){
+
+        const referrerResponse = await this.documentClient
+            .query({
+                TableName: this.props.transactionTable,
+                IndexName: 'referrerIdIndex',
+                KeyConditionExpression: 'referrerId = :referrerId',
+                ExpressionAttributeValues: {
+                    ':referrerId': params.userId
+                },
+                ScanIndexForward: false,
+                Limit: params.Limit,
+                ExclusiveStartKey: params.lastEvaluatedKey
+            }).promise()
+        const referrerTransactions = referrerResponse?.Items ? referrerResponse?.Items : []
+
+        if(params?.persona === 'CONSUMER'){
             const response = await this.documentClient
                 .query({
                     TableName: this.props.transactionTable,
@@ -455,9 +522,10 @@ export class TaskService {
                     Limit: params.Limit,
                     ExclusiveStartKey: params.lastEvaluatedKey
                 }).promise()
-            transactionComplex = response?.Items
+            const transactions = response?.Items ? response?.Items : []
+            transactionComplex = [...transactions, ...referrerTransactions]
         }
-        if(params?.type === 'WORKER'){
+        if(params?.persona === 'WORKER'){
             const response = await this.documentClient
                 .query({
                     TableName: this.props.transactionTable,
@@ -470,7 +538,8 @@ export class TaskService {
                     Limit: params.Limit,
                     ExclusiveStartKey: params.lastEvaluatedKey
                 }).promise()
-            transactionComplex = response?.Items
+            const transactions = response?.Items ? response?.Items : []
+            transactionComplex = [...transactions, ...referrerTransactions]
         }
         transactionComplex = await this.mergeTransactions(transactionComplex)
         return transactionComplex
@@ -483,32 +552,34 @@ export class TaskService {
         let taskIdMap = new Map<string, any>()
 
         if (!transactions || transactions.length === 0) {
-            return undefined
+            return []
         }
 
         for (let i = 0; i < transactions.length; i++) {
             const workerId = transactions[i].workerId
             const customerId = transactions[i].customerId
             const taskId = transactions[i].taskId
+            const referrerId = transactions[i].referrerId
 
-            if(userIdMap.has(workerId)){
-            } else {
+            if(workerId && !userIdMap.has(workerId)){
                 userIds.push({userId: workerId})
                 userIdMap.set(workerId, undefined)
             }
 
-            if(userIdMap.has(customerId)){
-            } else {
+            if(customerId && !userIdMap.has(customerId)){
                 userIds.push({userId: customerId})
                 userIdMap.set(customerId, undefined)
             }
 
-            if(taskIdMap.has(taskId)){
-            } else {
+            if(referrerId && !userIdMap.has(referrerId)){
+                userIds.push({userId: referrerId})
+                userIdMap.set(referrerId, undefined)
+            }
+
+            if(taskId && !taskIdMap.has(taskId)){
                 taskIds.push({id: taskId})
                 taskIdMap.set(taskId, undefined)
             }
-
         }
 
         const {profiles, tasks} = await this.batchGetProfiles(userIds, taskIds)
@@ -517,25 +588,34 @@ export class TaskService {
         for (let i = 0; i < transactions.length; i++) {
             const workerProfile = profiles.get(transactions[i].workerId)
             const customerProfile = profiles.get(transactions[i].customerId)
+            const referrerProfile = profiles.get(transactions[i].referrerId)
             const task = tasks.get(transactions[i].taskId)
             complexTransactions.push({
                 transaction: transactions[i],
-                customerName: (customerProfile && customerProfile.name ?
-                    customerProfile.name : ''),
-                customerLocation: (customerProfile && customerProfile.location ?
-                    customerProfile.location : ''),
-                customerProfilePhoto: ( customerProfile && customerProfile.photos ?
-                    customerProfile.photos[0]: undefined),
-                customerAccountCode: ( customerProfile && customerProfile.accountCode ?
-                    customerProfile.accountCode: ''),
-                workerName: (workerProfile && workerProfile.name ?
-                    workerProfile.name : ''),
-                workerLocation: (workerProfile && workerProfile.location ?
-                    workerProfile.location : ''),
-                workerProfilePhoto: ( workerProfile && workerProfile.photos ?
-                    workerProfile.photos[0]: undefined),
-                workerAccountCode: ( workerProfile && workerProfile.accountCode ?
-                    workerProfile.accountCode: ''),
+                customer: {
+                    userId: customerProfile?.userId,
+                    name: customerProfile?.name,
+                    location: customerProfile?.location,
+                    accountCode: customerProfile?.accountCode,
+                    profilePhoto: (customerProfile?.photos ?
+                        customerProfile.photos[0]: undefined),
+                },
+                worker: {
+                    userId: workerProfile?.userId,
+                    name: workerProfile?.name,
+                    location: workerProfile?.location,
+                    accountCode: workerProfile?.accountCode,
+                    profilePhoto: (workerProfile?.photos ?
+                        workerProfile.photos[0]: undefined),
+                },
+                referrer: {
+                    userId: referrerProfile?.userId,
+                    name: referrerProfile?.name,
+                    location: referrerProfile?.location,
+                    accountCode: referrerProfile?.accountCode,
+                    profilePhoto: (referrerProfile?.photos ?
+                        referrerProfile.photos[0]: undefined),
+                },
                 task: task
             })
         }

@@ -43,9 +43,9 @@ export function  getPathParameter(event: APIGatewayProxyEvent, parameter: string
 export function getQueryString(event: APIGatewayProxyEvent,
                                parameter: string) {
     let value: string | undefined
-    const {queryStringParameters} = event;
+    const {queryStringParameters} = event
     if (queryStringParameters) {
-        value = queryStringParameters[parameter!];
+        value = queryStringParameters[parameter!]
     }
     return value
 }

@@ -47,12 +47,14 @@ export interface TaskEntity {
 
 export interface TransactionEntity {
     id: string
+    type: string
     createdAt: string
     lastUpdatedAt?: string
     lastMessage?: string
-    taskId: string
-    customerId: string
-    workerId: string
+    taskId?: string
+    customerId?: string
+    workerId?: string
+    referrerId?: string
     status: string
     price?: string
     paymentTransactionId?: string

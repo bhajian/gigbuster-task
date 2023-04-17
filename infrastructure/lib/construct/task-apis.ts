@@ -55,6 +55,8 @@ export class TaskApis extends GenericApi {
     private rejectApi: NodejsFunction
 
     private transactionQueryApi: NodejsFunction
+    private transactionPostApi: NodejsFunction
+    private transactionDeleteApi: NodejsFunction
     private transactionPutApi: NodejsFunction
 
     private addPhotoApi: NodejsFunction
@@ -303,10 +305,40 @@ export class TaskApis extends GenericApi {
             authorizer: props.authorizer
         })
 
+        this.transactionPostApi = this.addMethod({
+            functionName: 'task-transaction-post',
+            handlerName: 'task-transaction-post-handler.ts',
+            verb: 'POST',
+            resource: props.transactionResource,
+            environment: {
+                TASK_TABLE: props.taskTable.tableName,
+                TRANSACTION_TABLE: props.transactionTable.tableName,
+                IMAGE_BUCKET: props.bucket.bucketName
+            },
+            validateRequestBody: false,
+            authorizationType: AuthorizationType.COGNITO,
+            authorizer: props.authorizer
+        })
+
         this.transactionPutApi = this.addMethod({
             functionName: 'task-transaction-put',
             handlerName: 'task-transaction-put-handler.ts',
             verb: 'PUT',
+            resource: props.transactionIdResource,
+            environment: {
+                TASK_TABLE: props.taskTable.tableName,
+                TRANSACTION_TABLE: props.transactionTable.tableName,
+                IMAGE_BUCKET: props.bucket.bucketName
+            },
+            validateRequestBody: false,
+            authorizationType: AuthorizationType.COGNITO,
+            authorizer: props.authorizer
+        })
+
+        this.transactionDeleteApi = this.addMethod({
+            functionName: 'task-transaction-delete',
+            handlerName: 'task-transaction-delete-handler.ts',
+            verb: 'DELETE',
             resource: props.transactionIdResource,
             environment: {
                 TASK_TABLE: props.taskTable.tableName,
@@ -410,6 +442,8 @@ export class TaskApis extends GenericApi {
         props.transactionTable.grantFullAccess(this.rejectApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.transactionQueryApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.transactionPutApi.grantPrincipal)
+        props.transactionTable.grantFullAccess(this.transactionPostApi.grantPrincipal)
+        props.transactionTable.grantFullAccess(this.transactionDeleteApi.grantPrincipal)
 
         props.taskTable.grantFullAccess(this.listApplicantApi.grantPrincipal)
         props.taskTable.grantFullAccess(this.setMainPhotoApi.grantPrincipal)

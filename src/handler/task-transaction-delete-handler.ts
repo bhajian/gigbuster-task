@@ -3,17 +3,17 @@ import {
     APIGatewayProxyResult,
     APIGatewayProxyEvent
 } from 'aws-lambda';
+import {getEventBody, getPathParameter, getSub} from "../lib/utils";
 import {Env} from "../lib/env";
 import {TaskService} from "../service/task-service";
-import {getPathParameter, getQueryString, getSub} from "../lib/utils";
+import {TaskEntity, TransactionEntity} from "../service/task-types";
 
 const taskTable = Env.get('TASK_TABLE')
 const transactionTable = Env.get('TRANSACTION_TABLE')
-const profileTable = Env.get('PROFILE_TABLE')
 const bucket = Env.get('IMAGE_BUCKET')
 const service = new TaskService({
+    profileTable: "",
     taskTable: taskTable,
-    profileTable: profileTable,
     transactionTable: transactionTable,
     bucket: bucket
 })
@@ -28,25 +28,20 @@ export async function handler(event: APIGatewayProxyEvent, context: Context):
             'Access-Control-Allow-Headers': '*',
             'Access-Control-Allow-Methods': '*'
         },
-        body: ''
+        body: 'Hello From Todo Edit Api!'
     }
-    try{
-        const userId = getSub(event)
-        const persona = getQueryString(event, 'persona')
-        const limit = getQueryString(event, 'limit')
-        const lastEvaluatedKey = getQueryString(event, 'lastEvaluatedKey')
-        const items = await service.queryTransaction({
-            userId: userId,
-            persona: persona,
-            limit: limit,
-            lastEvaluatedKey: lastEvaluatedKey
-        })
-        result.body = JSON.stringify(items)
-        return result
-    }
-    catch (e) {
+    try {
+
+        const id = getPathParameter(event, 'transactionId')
+        const item = getEventBody(event) as TransactionEntity
+        const sub = getSub(event)
+        item.customerId = sub
+        item.id = id
+        const res = await service.deleteTransaction(item)
+        result.body = JSON.stringify(res)
+    } catch (error) {
         result.statusCode = 500
-        result.body = e.message
+        result.body = error.message
     }
     return result
 }
