@@ -177,36 +177,8 @@ export class TaskService {
                 }
             }).promise()
         const transactions: TransactionEntity[] = response?.Items as TransactionEntity[]
-        if(!transactions){
-            return []
-        }
-        let userIds = []
-
-        if (transactions) {
-            for (let i = 0; i < transactions.length; i++) {
-                userIds.push({userId: transactions[i].workerId})
-            }
-        }
-
-        const {profiles} = await this.batchGetProfiles(userIds, [])
-        const applicantProfiles : ApplicantProfile[] = []
-
-        for (let i = 0; i < transactions.length; i++) {
-            const profile = profiles.get(transactions[i].workerId)
-            const ap : ApplicantProfile = {
-                transaction: transactions[i],
-                name: ( profile && profile.name ?
-                    profile.name: ''),
-                accountCode: ( profile && profile.accountCode ?
-                    profile.accountCode: ''),
-                location: ( profile ?
-                    profile.location: undefined),
-                profilePhoto: ( profile && profile.photos ?
-                    profile.photos[0]: undefined)
-            }
-            applicantProfiles.push(ap)
-        }
-        return applicantProfiles
+        const transactionComplex = await this.mergeTransactions(transactions)
+        return transactionComplex
     }
 
     async applyForTask(params: KeyParams): Promise<any> {
