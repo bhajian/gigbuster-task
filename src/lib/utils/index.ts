@@ -30,7 +30,7 @@ export function getSub(event: APIGatewayProxyEvent): string {
     throw new Error('Authorization header is not empty or cannot be parsed.')
 }
 
-export function  getPathParameter(event: APIGatewayProxyEvent, parameter: string): string {
+export function getPathParameter(event: APIGatewayProxyEvent, parameter: string): string {
     const value: string | undefined = event.pathParameters
         ? event['pathParameters'][parameter]
         : undefined

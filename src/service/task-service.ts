@@ -23,7 +23,7 @@ export class TaskService {
         this.props = props
     }
 
-    async list(userId: string): Promise<TaskEntity[]> {
+    async list(params: any): Promise<any> {
         const response = await this.documentClient
             .query({
                 TableName: this.props.taskTable,
@@ -31,17 +31,19 @@ export class TaskService {
                 KeyConditionExpression: 'userId = :userId',
                 FilterExpression: 'taskStatus = :taskStatus',
                 ExpressionAttributeValues : {
-                    ':userId' : userId,
+                    ':userId' : params.userId,
                     ':taskStatus': 'active'
                 },
+                Limit: params.limit,
+                ExclusiveStartKey: params.lastEvaluatedKey
             }).promise()
-        if (response.Items === undefined) {
-            return [] as TaskEntity[]
+        if (response === undefined) {
+            return {}
         }
-        return response.Items as TaskEntity[]
+        return response
     }
 
-    async query(params: any): Promise<any[]> {
+    async query(params: any): Promise<any> {
         const response = await this.documentClient
             .scan({
                 TableName: this.props.taskTable,
@@ -52,11 +54,11 @@ export class TaskService {
                     ':userId' : params.userId,
                     ':taskStatus': 'active'
                 },
-                Limit: params.Limit,
+                Limit: params.limit,
                 ExclusiveStartKey: params.lastEvaluatedKey
             }).promise()
-        if (response.Items === undefined) {
-            return [] as TaskEntity[]
+        if (!response || response?.Items === undefined) {
+            return {}
         }
 
         const tasks = response.Items
@@ -88,7 +90,10 @@ export class TaskService {
                     profile.photos[0]: undefined)
             })
         }
-        return complexTasks
+
+        response.Items = complexTasks
+        return response
+
     }
 
     async get(params: KeyParams): Promise<TaskEntity> {

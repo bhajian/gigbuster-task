@@ -32,11 +32,17 @@ export async function handler(event: APIGatewayProxyEvent, context: Context):
         const userId = getSub(event)
         const limit = getQueryString(event, 'limit')
         const lastEvaluatedKey = getQueryString(event, 'lastEvaluatedKey')
-        const items = await service.query({
+
+        const params: any = {
             userId: userId,
             limit: limit,
-            lastEvaluatedKey: lastEvaluatedKey
-        })
+        }
+        if(lastEvaluatedKey){
+            params.lastEvaluatedKey = {
+                id: lastEvaluatedKey
+            }
+        }
+        const items = await service.query(params)
         result.body = JSON.stringify(items)
         return result
     }

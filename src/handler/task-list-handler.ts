@@ -5,7 +5,7 @@ import {
 } from 'aws-lambda';
 import {Env} from "../lib/env";
 import {TaskService} from "../service/task-service";
-import {getSub} from "../lib/utils";
+import {getQueryString, getSub} from "../lib/utils";
 
 const table = Env.get('TABLE')
 const bucket = Env.get('IMAGE_BUCKET')
@@ -28,8 +28,20 @@ export async function handler(event: APIGatewayProxyEvent, context: Context):
         body: ''
     }
     try{
+        const limit = getQueryString(event, 'limit')
+        const lastEvaluatedKey = getQueryString(event, 'lastEvaluatedKey')
         const userId = getSub(event)
-        const item = await service.list(userId)
+        const params: any = {
+            userId: userId,
+            limit: limit,
+        }
+        if(lastEvaluatedKey){
+            params.lastEvaluatedKey = {
+                id: lastEvaluatedKey
+            }
+        }
+
+        const item = await service.list(params)
         result.body = JSON.stringify(item)
         return result
     }
