@@ -60,7 +60,6 @@ export class TaskService {
         if (!response || response?.Items === undefined) {
             return {}
         }
-
         const tasks = response.Items
         let userIds = []
         let tasksMap = new Map<string, any>()
@@ -74,10 +73,8 @@ export class TaskService {
                 }
             }
         }
-
         const {profiles} = await this.batchGetProfiles(userIds, [])
         const complexTasks : any[] = []
-
         for (let i = 0; i < tasks.length; i++) {
             const profile = profiles.get(tasks[i].userId)
             complexTasks.push({
@@ -90,10 +87,8 @@ export class TaskService {
                     profile.photos[0]: undefined)
             })
         }
-
         response.Items = complexTasks
         return response
-
     }
 
     async get(params: KeyParams): Promise<TaskEntity> {
@@ -204,7 +199,7 @@ export class TaskService {
                 }
             }).promise()
         const transaction = transactionResponse.Items
-        if(transaction && transaction[0]){
+        if(transaction && transaction[0]?.status === 'applied'){
             throw new Error('The applicant has already applied.')
         }
 
@@ -227,6 +222,66 @@ export class TaskService {
                 createdAt: now.toISOString(),
                 lastUpdatedAt: now.toISOString(),
                 status: 'applied'
+            }
+
+            await this.documentClient
+                .put({
+                    TableName: this.props.transactionTable,
+                    Item: newTransaction,
+                }).promise()
+            return newTransaction
+        } else {
+            throw new Error('The task does not exist.')
+        }
+        return {}
+    }
+
+    async passedTask(params: KeyParams): Promise<any> {
+        const now = new Date()
+        if(!params.applicantId){
+            throw new Error('The applicant id is undefined.')
+        }
+        if(!params.taskId){
+            throw new Error('The task id is undefined.')
+        }
+        if(!this.props.transactionTable){
+            throw new Error('The transaction table is not passed.')
+        }
+
+        const transactionResponse = await this.documentClient
+            .query({
+                TableName: this.props.transactionTable,
+                IndexName: 'taskWorkerIdIndex',
+                KeyConditionExpression: 'taskId = :taskId and workerId = :workerId',
+                ExpressionAttributeValues: {
+                    ':taskId': params.taskId,
+                    ':workerId': params.applicantId
+                }
+            }).promise()
+        const transaction = transactionResponse.Items
+        if(transaction && transaction[0]){
+            throw new Error('The applicant has already applied.')
+        }
+
+        const taskResponse = await this.documentClient
+            .get({
+                TableName: this.props.taskTable,
+                Key: {
+                    id: params.taskId,
+                },
+            }).promise()
+        const task = taskResponse.Item
+
+        if (task) {
+            const newTransaction: TransactionEntity = {
+                id: uuidv4(),
+                customerId: task.userId,
+                taskId: params.taskId,
+                workerId: params.applicantId,
+                type: 'application',
+                createdAt: now.toISOString(),
+                lastUpdatedAt: now.toISOString(),
+                status: 'passed'
             }
 
             await this.documentClient
@@ -477,8 +532,13 @@ export class TaskService {
                 TableName: this.props.transactionTable,
                 IndexName: 'referrerIdIndex',
                 KeyConditionExpression: 'referrerId = :referrerId',
+                FilterExpression: '#status <> :status',
                 ExpressionAttributeValues: {
-                    ':referrerId': params.userId
+                    ':referrerId': params.userId,
+                    ':status': 'terminated'
+                },
+                ExpressionAttributeNames: {
+                    '#status': 'status'
                 },
                 ScanIndexForward: false,
                 Limit: params.Limit,
@@ -492,8 +552,13 @@ export class TaskService {
                     TableName: this.props.transactionTable,
                     IndexName: 'customerIdIndex',
                     KeyConditionExpression: 'customerId = :customerId',
+                    FilterExpression: '#status <> :status',
                     ExpressionAttributeValues: {
-                        ':customerId': params.userId
+                        ':customerId': params.userId,
+                        ':status': 'terminated'
+                    },
+                    ExpressionAttributeNames: {
+                        '#status': 'status'
                     },
                     ScanIndexForward: false,
                     Limit: params.Limit,
@@ -508,8 +573,13 @@ export class TaskService {
                     TableName: this.props.transactionTable,
                     IndexName: 'workerIdIndex',
                     KeyConditionExpression: 'workerId = :workerId',
+                    FilterExpression: '#status <> :status',
                     ExpressionAttributeValues: {
-                        ':workerId': params.userId
+                        ':workerId': params.userId,
+                        ':status': 'terminated'
+                    },
+                    ExpressionAttributeNames: {
+                        '#status': 'status'
                     },
                     ScanIndexForward: false,
                     Limit: params.Limit,

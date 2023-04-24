@@ -36,6 +36,7 @@ export interface TaskApiProps {
     photoIdResource: IResource
     applicantResource: IResource
     applyResource: IResource
+    passResource: IResource
     withdrawResource: IResource
     acceptResource: IResource
     rejectResource: IResource
@@ -49,6 +50,7 @@ export class TaskApis extends GenericApi {
     private putApi: NodejsFunction
     private deleteApi: NodejsFunction
     private applyApi: NodejsFunction
+    private passApi: NodejsFunction
     private listApplicantApi: NodejsFunction
     private withdrawApi: NodejsFunction
     private acceptApi: NodejsFunction
@@ -94,6 +96,7 @@ export class TaskApis extends GenericApi {
             .addResource('{transactionId}')
         const applicantResource = idResource.addResource('applicant')
         const applyResource = idResource.addResource('apply')
+        const passResource = idResource.addResource('pass')
         const withdrawResource = idResource.addResource('withdraw')
         const acceptResource = idResource.addResource('accept')
         const rejectResource = idResource.addResource('reject')
@@ -103,6 +106,7 @@ export class TaskApis extends GenericApi {
         this.initializeTaskApis({
             acceptResource: acceptResource,
             applyResource: applyResource,
+            passResource: passResource,
             applicantResource: applicantResource,
             rejectResource: rejectResource,
             withdrawResource: withdrawResource,
@@ -232,6 +236,21 @@ export class TaskApis extends GenericApi {
             handlerName: 'task-apply-handler.ts',
             verb: 'PUT',
             resource: props.applyResource,
+            environment: {
+                TASK_TABLE: props.taskTable.tableName,
+                TRANSACTION_TABLE: props.transactionTable.tableName,
+                IMAGE_BUCKET: props.bucket.bucketName
+            },
+            validateRequestBody: false,
+            authorizationType: AuthorizationType.COGNITO,
+            authorizer: props.authorizer
+        })
+
+        this.passApi = this.addMethod({
+            functionName: 'task-pass',
+            handlerName: 'task-pass-handler.ts',
+            verb: 'PUT',
+            resource: props.passResource,
             environment: {
                 TASK_TABLE: props.taskTable.tableName,
                 TRANSACTION_TABLE: props.transactionTable.tableName,
