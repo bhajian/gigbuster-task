@@ -576,12 +576,14 @@ export class TaskService {
                     KeyConditionExpression: 'workerId = :workerId',
                     FilterExpression: '#status <> :terminated AND ' +
                         '#status <> :rejected ' +
-                        'AND #status <> :applied',
+                        'AND #status <> :applied ' +
+                        'AND #status <> :passed',
                     ExpressionAttributeValues: {
                         ':workerId': params.userId,
                         ':terminated': 'terminated',
                         ':rejected': 'rejected',
-                        ':applied': 'applied'
+                        ':applied': 'applied',
+                        ':passed': 'passed'
                     },
                     ExpressionAttributeNames: {
                         '#status': 'status'
