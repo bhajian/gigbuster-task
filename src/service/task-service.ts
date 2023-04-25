@@ -200,7 +200,7 @@ export class TaskService {
             }).promise()
         const transaction = transactionResponse.Items
         if(transaction && transaction[0]?.status === 'applied'){
-            throw new Error('The applicant has already applied.')
+            throw new Error('The applicant has already applied/passed.')
         }
 
         const taskResponse = await this.documentClient
@@ -260,7 +260,7 @@ export class TaskService {
             }).promise()
         const transaction = transactionResponse.Items
         if(transaction && transaction[0]){
-            throw new Error('The applicant has already applied.')
+            throw new Error('The applicant has already passed/applied.')
         }
 
         const taskResponse = await this.documentClient
@@ -532,10 +532,10 @@ export class TaskService {
                 TableName: this.props.transactionTable,
                 IndexName: 'referrerIdIndex',
                 KeyConditionExpression: 'referrerId = :referrerId',
-                FilterExpression: '#status <> :status',
+                FilterExpression: '#status <> :terminated',
                 ExpressionAttributeValues: {
                     ':referrerId': params.userId,
-                    ':status': 'terminated'
+                    ':terminated': 'terminated'
                 },
                 ExpressionAttributeNames: {
                     '#status': 'status'
@@ -552,10 +552,11 @@ export class TaskService {
                     TableName: this.props.transactionTable,
                     IndexName: 'customerIdIndex',
                     KeyConditionExpression: 'customerId = :customerId',
-                    FilterExpression: '#status <> :status',
+                    FilterExpression: '#status <> :terminated AND #status <> :rejected',
                     ExpressionAttributeValues: {
                         ':customerId': params.userId,
-                        ':status': 'terminated'
+                        ':terminated': 'terminated',
+                        ':rejected': 'rejected',
                     },
                     ExpressionAttributeNames: {
                         '#status': 'status'
@@ -573,10 +574,11 @@ export class TaskService {
                     TableName: this.props.transactionTable,
                     IndexName: 'workerIdIndex',
                     KeyConditionExpression: 'workerId = :workerId',
-                    FilterExpression: '#status <> :status',
+                    FilterExpression: '#status <> :terminated AND #status <> :rejected',
                     ExpressionAttributeValues: {
                         ':workerId': params.userId,
-                        ':status': 'terminated'
+                        ':terminated': 'terminated',
+                        ':rejected': 'rejected',
                     },
                     ExpressionAttributeNames: {
                         '#status': 'status'
