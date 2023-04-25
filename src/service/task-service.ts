@@ -574,11 +574,14 @@ export class TaskService {
                     TableName: this.props.transactionTable,
                     IndexName: 'workerIdIndex',
                     KeyConditionExpression: 'workerId = :workerId',
-                    FilterExpression: '#status <> :terminated AND #status <> :rejected',
+                    FilterExpression: '#status <> :terminated AND ' +
+                        '#status <> :rejected ' +
+                        'AND #status <> :applied',
                     ExpressionAttributeValues: {
                         ':workerId': params.userId,
                         ':terminated': 'terminated',
                         ':rejected': 'rejected',
+                        ':applied': 'applied'
                     },
                     ExpressionAttributeNames: {
                         '#status': 'status'
