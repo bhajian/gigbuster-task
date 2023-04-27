@@ -33,11 +33,11 @@ export async function handler(event: APIGatewayProxyEvent, context: Context):
     try {
 
         const id = getPathParameter(event, 'transactionId')
-        const item = getEventBody(event) as TransactionEntity
         const sub = getSub(event)
-        item.customerId = sub
-        item.id = id
-        const res = await service.deleteTransaction(item)
+        const res = await service.deleteTransaction({
+            transactionId: id,
+            userId: sub
+        })
         result.body = JSON.stringify(res)
     } catch (error) {
         result.statusCode = 500

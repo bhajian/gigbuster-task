@@ -498,7 +498,7 @@ export class TaskService {
         return params
     }
 
-    async deleteTransaction(params: TransactionEntity): Promise<any> {
+    async deleteTransaction(params: KeyParams): Promise<any> {
         if(!this.props.transactionTable){
             throw new Error('The transaction table is not passed.')
         }
@@ -507,16 +507,18 @@ export class TaskService {
             .update({
                 TableName: this.props.transactionTable,
                 Key: {
-                    id: params.id,
+                    id: params.transactionId,
                 },
+                ConditionExpression: 'customerId = :userId OR workerId = :userId OR referrerId = :userId',
                 UpdateExpression: 'set #status = :status ' +
-                    'and lastUpdatedAt = :lastUpdatedAt',
+                    ', lastUpdatedAt = :lastUpdatedAt',
                 ExpressionAttributeNames: {
                     '#status' : 'status'
                 },
                 ExpressionAttributeValues : {
                     ':status': 'terminated',
                     ':lastUpdatedAt': now,
+                    ':userId': params.userId
                 }
             }).promise()
         return params
