@@ -116,6 +116,7 @@ export class TaskService {
     }
 
     async put(params: TaskEntity): Promise<TaskEntity> {
+        params.taskStatus = 'active'
         const response = await this.documentClient
             .put({
                 TableName: this.props.taskTable,
