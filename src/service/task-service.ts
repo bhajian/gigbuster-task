@@ -200,7 +200,7 @@ export class TaskService {
                 }
             }).promise()
         const transaction = transactionResponse.Items
-        if(transaction && transaction[0]?.status === 'applied'){
+        if(transaction && transaction?.length > 0){
             throw new Error('The applicant has already applied/passed.')
         }
 
@@ -260,7 +260,7 @@ export class TaskService {
                 }
             }).promise()
         const transaction = transactionResponse.Items
-        if(transaction && transaction[0]){
+        if(transaction && transaction?.length > 0){
             throw new Error('The applicant has already passed/applied.')
         }
 
