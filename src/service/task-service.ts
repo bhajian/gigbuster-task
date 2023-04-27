@@ -418,7 +418,7 @@ export class TaskService {
                     id: params.taskId,
                 },
                 ConditionExpression: 'userId = :userId',
-                UpdateExpression: 'set photos=list_append(if_not_exists(photos, :empty_list), :newPhotos)',
+                UpdateExpression: 'set photos=list_append(:newPhotos, if_not_exists(photos, :empty_list))',
                 ExpressionAttributeValues : {
                     ':userId': params.userId,
                     ':empty_list': [],
