@@ -23,7 +23,7 @@ export class TaskStack extends Stack {
       taskImageBucket: taskApiProps.taskApiStatefulStack.taskImageBucket
     })
 
-    this.taskFunctions = new TaskAyncFunctions(this, 'profileAsyncFunctionsId', {
+    this.taskFunctions = new TaskAyncFunctions(this, 'taskAsyncFunctionsId', {
       taskTable: taskApiProps.taskApiStatefulStack.taskTable,
       transactionTable: taskApiProps.taskApiStatefulStack.transactionTable
     })

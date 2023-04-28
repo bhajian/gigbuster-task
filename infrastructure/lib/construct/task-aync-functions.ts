@@ -29,25 +29,25 @@ export class TaskAyncFunctions extends GenericAsyncFunction {
         const notificationTable = this.getNotificationTable()
 
         this.transactionCreationStream = this.addFunction({
-            functionName: 'transaction-creation-dynamo-stream-handler',
+            functionName: 'transaction-creation-dynamo-stream-handler2',
             handlerName: 'transaction-creation-dynamo-stream-handler.ts',
             environment: {
                 TASK_TABLE: this.props.taskTable.table.tableName,
                 PROFILE_TABLE: profileTable.tableName,
                 TRANSACTION_TABLE: this.props.transactionTable.table.tableName,
-                NOTIFICATION_TABLE: notificationTable,
+                NOTIFICATION_TABLE: notificationTable.tableName,
             },
             externalModules: []
         })
 
         this.taskUpdateStream = this.addFunction({
-            functionName: 'task-updated-dynamo-stream-handler',
+            functionName: 'task-updated-dynamo-stream-handler2',
             handlerName: 'task-updated-dynamo-stream-handler.ts',
             environment: {
                 TASK_TABLE: this.props.taskTable.table.tableName,
                 PROFILE_TABLE: profileTable.tableName,
                 TRANSACTION_TABLE: this.props.transactionTable.table.tableName,
-                NOTIFICATION_TABLE: notificationTable,
+                NOTIFICATION_TABLE: notificationTable.tableName,
             },
             externalModules: []
         })
