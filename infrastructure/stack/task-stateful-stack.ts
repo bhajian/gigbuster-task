@@ -136,5 +136,4 @@ export class TaskStatefulStack extends Stack {
         authenticatedRole.addToPrincipalPolicy(uploadBucketPolicy)
         adminRole.addToPrincipalPolicy(uploadBucketPolicy)
     }
-
 }

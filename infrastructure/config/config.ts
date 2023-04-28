@@ -13,6 +13,7 @@ interface Env {
     unauthenticatedRoleArn: string | undefined
     adminRoleArn: string | undefined
     profileTableArn: string | undefined
+    notificationTableArn: string | undefined
 }
 
 interface AppConfig {
@@ -28,6 +29,7 @@ interface AppConfig {
     unauthenticatedRoleArn: string
     adminRoleArn: string
     profileTableArn: string
+    notificationTableArn: string
 }
 
 const getConfig = (): Env => {
@@ -43,7 +45,8 @@ const getConfig = (): Env => {
         authenticatedRoleArn: configFile.authenticatedRoleArn,
         unauthenticatedRoleArn: configFile.unauthenticatedRoleArn,
         adminRoleArn: configFile.adminRoleArn,
-        profileTableArn: configFile.profileTableArn
+        profileTableArn: configFile.profileTableArn,
+        notificationTableArn: configFile.notificationTableArn
     }
 };
 
