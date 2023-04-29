@@ -76,6 +76,7 @@ export class NotificationLogService {
                     TableName: this.props.notificationTable,
                     Item: {
                         id: uuidv4(),
+                        dateTime: now.toISOString(),
                         userId: params?.newImage?.customerId,
                         type: 'CHAT_TERMINATED',
                         subjectId: params?.newImage?.workerId,

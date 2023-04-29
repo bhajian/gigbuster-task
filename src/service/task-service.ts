@@ -201,7 +201,10 @@ export class TaskService {
             }).promise()
         const transaction = transactionResponse.Items
         if(transaction && transaction?.length > 0){
-            throw new Error('The applicant has already applied/passed.')
+            return {
+                success: false,
+                message: 'The user already applied for the task.'
+            }
         }
 
         const taskResponse = await this.documentClient
@@ -261,7 +264,10 @@ export class TaskService {
             }).promise()
         const transaction = transactionResponse.Items
         if(transaction && transaction?.length > 0){
-            throw new Error('The applicant has already passed/applied.')
+            return {
+                success: false,
+                message: 'The User already passed the task.'
+            }
         }
 
         const taskResponse = await this.documentClient
