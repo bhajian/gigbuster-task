@@ -24,12 +24,16 @@ export class NotificationLogService {
     }
 
     async createTransactionNotification(params: any): Promise<any> {
+        const now = new Date()
+
         if(params?.eventName === 'INSERT' && params?.newImage?.status === 'applied'
             && params?.newImage?.type === 'application'){
             await this.documentClient
                 .put({
                     TableName: this.props.notificationTable,
                     Item: {
+                        id: uuidv4(),
+                        dateTime: now.toISOString(),
                         userId: params?.newImage?.customerId,
                         type: 'NEW_APPLICATION',
                         subjectId: params?.newImage?.workerId,
@@ -44,6 +48,8 @@ export class NotificationLogService {
                 .put({
                     TableName: this.props.notificationTable,
                     Item: {
+                        id: uuidv4(),
+                        dateTime: now.toISOString(),
                         userId: params?.newImage?.workerId,
                         type: 'APPLICATION_ACCEPTED',
                         subjectId: params?.newImage?.customerId,
@@ -57,6 +63,8 @@ export class NotificationLogService {
                 .put({
                     TableName: this.props.notificationTable,
                     Item: {
+                        id: uuidv4(),
+                        dateTime: now.toISOString(),
                         userId: params?.newImage?.workerId,
                         type: 'CHAT_TERMINATED',
                         subjectId: params?.newImage?.customerId,
@@ -67,6 +75,7 @@ export class NotificationLogService {
                 .put({
                     TableName: this.props.notificationTable,
                     Item: {
+                        id: uuidv4(),
                         userId: params?.newImage?.customerId,
                         type: 'CHAT_TERMINATED',
                         subjectId: params?.newImage?.workerId,
@@ -74,9 +83,6 @@ export class NotificationLogService {
                     },
                 }).promise()
         }
-
-
-
     }
 
     async createTaskNotification(params: any): Promise<any> {
@@ -95,6 +101,8 @@ export class NotificationLogService {
             //     .put({
             //         TableName: this.props.notificationTable,
             //         Item: {
+            //                 id: uuidv4(),
+            //                 dateTime: now.toISOString(),
             //             userId: params?.newImage?.workerId,
             //             type: 'CHAT_TERMINATED',
             //             subjectId: params?.newImage?.customerId,
