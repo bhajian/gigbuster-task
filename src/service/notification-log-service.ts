@@ -23,27 +23,85 @@ export class NotificationLogService {
         this.props = props
     }
 
-    async createTransactionNotification(params: KeyParams): Promise<any> {
-        const response = await this.documentClient
-            .get({
-                TableName: this.props.taskTable,
-                Key: {
-                    id: params.taskId,
-                },
-            }).promise()
-        return response.Item as TaskEntity
+    async createTransactionNotification(params: any): Promise<any> {
+        if(params?.eventName === 'INSERT' && params?.newImage?.status === 'applied'
+            && params?.newImage?.type === 'application'){
+            await this.documentClient
+                .put({
+                    TableName: this.props.notificationTable,
+                    Item: {
+                        userId: params?.newImage?.customerId,
+                        type: 'NEW_APPLICATION',
+                        subjectId: params?.newImage?.workerId,
+                        objectId: params?.newImage?.taskId,
+                    },
+                }).promise()
+        }
+        if(params?.eventName === 'MODIFY' && params?.newImage?.type === 'application'
+            && params?.newImage?.status === 'applicationAccepted'
+            && params?.oldImage?.status === 'applied'){
+            await this.documentClient
+                .put({
+                    TableName: this.props.notificationTable,
+                    Item: {
+                        userId: params?.newImage?.workerId,
+                        type: 'APPLICATION_ACCEPTED',
+                        subjectId: params?.newImage?.customerId,
+                        objectId: params?.newImage?.taskId,
+                    },
+                }).promise()
+        }
+        if(params?.eventName === 'MODIFY' && params?.newImage?.type === 'application'
+            && params?.newImage?.status === 'terminated'){
+            await this.documentClient
+                .put({
+                    TableName: this.props.notificationTable,
+                    Item: {
+                        userId: params?.newImage?.workerId,
+                        type: 'CHAT_TERMINATED',
+                        subjectId: params?.newImage?.customerId,
+                        objectId: params?.newImage?.taskId,
+                    },
+                }).promise()
+            await this.documentClient
+                .put({
+                    TableName: this.props.notificationTable,
+                    Item: {
+                        userId: params?.newImage?.customerId,
+                        type: 'CHAT_TERMINATED',
+                        subjectId: params?.newImage?.workerId,
+                        objectId: params?.newImage?.taskId,
+                    },
+                }).promise()
+        }
+
+
+
     }
 
-    async createTaskNotification(params: TaskEntity): Promise<any> {
-        params.taskStatus = 'active'
-        const response = await this.documentClient
-            .put({
-                TableName: this.props.notificationTable,
-                Item: params,
-                ConditionExpression: 'userId = :userId',
-                ExpressionAttributeValues : {':userId' : params.userId}
-            }).promise()
-        return params
+    async createTaskNotification(params: any): Promise<any> {
+        if(params?.eventName === 'MODIFY' && params?.newImage?.taskStatus === 'inactive'
+            && params?.oldImage?.taskStatus === 'active'){
+            // const response = await this.documentClient
+            //     .query({
+            //         TableName: this.props.taskTable,
+            //         Key: {
+            //             id: params.taskId,
+            //         },
+            //     }).promise()
+            // return response.Item as TaskEntity
+
+            // await this.documentClient
+            //     .put({
+            //         TableName: this.props.notificationTable,
+            //         Item: {
+            //             userId: params?.newImage?.workerId,
+            //             type: 'CHAT_TERMINATED',
+            //             subjectId: params?.newImage?.customerId,
+            //             objectId: params?.newImage?.taskId,
+            //         },
+            //     }).promise()
+        }
     }
 
 }

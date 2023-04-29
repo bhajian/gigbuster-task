@@ -17,12 +17,14 @@ const notificationService = new NotificationLogService({
 export async function handler(event: any) {
     for(let i = 0 ; i < event.Records.length; i++){
         const record = event.Records[i]
-        // if(record.eventName === 'INSERT'){
-        const unmarshalledObj = DynamoDB.Converter.unmarshall(record.dynamodb)
-        console.log('START-------')
-        console.log(record.eventName)
-        console.log(unmarshalledObj)
-        console.log('END-------')
-        // }
+        const newImage = DynamoDB.Converter.unmarshall(record.dynamodb.NewImage)
+        const oldImage = DynamoDB.Converter.unmarshall(record.dynamodb.OldImage)
+        if(record?.eventName === 'INSERT' || record.eventName === 'MODIFY'){
+            await notificationService.createTransactionNotification({
+                newImage: newImage,
+                oldImage: oldImage,
+                eventName: record.eventName
+            })
+        }
     }
 }
