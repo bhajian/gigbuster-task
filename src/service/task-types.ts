@@ -55,6 +55,10 @@ export interface TransactionEntity {
     customerId?: string
     workerId?: string
     referrerId?: string
+    senderId?: string
+    receiverId?: string
+    lastSenderRead?: string
+    lastReceiverRead?: string
     status: string
     price?: string
     paymentTransactionId?: string

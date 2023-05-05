@@ -6,12 +6,14 @@ const taskTable = Env.get('TASK_TABLE')
 const transactionTable = Env.get('TRANSACTION_TABLE')
 const profileTable = Env.get('PROFILE_TABLE')
 const notificationTable = Env.get('NOTIFICATION_TABLE')
+const expoAccessToken = Env.get('EXPO_ACCESS_TOKEN')
 
 const notificationService = new NotificationLogService({
     taskTable: taskTable,
     notificationTable: notificationTable,
     transactionTable: transactionTable,
-    profileTable: profileTable
+    profileTable: profileTable,
+    expoAccessToken: expoAccessToken
 })
 
 export async function handler(event: any) {

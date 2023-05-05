@@ -32,6 +32,7 @@ export interface TaskApiProps {
     idResource: IResource,
     transactionResource: IResource
     transactionIdResource: IResource,
+    transactionUpdateLastMessageResource: IResource
     photoResource: IResource
     photoIdResource: IResource
     applicantResource: IResource
@@ -60,6 +61,7 @@ export class TaskApis extends GenericApi {
     private transactionPostApi: NodejsFunction
     private transactionDeleteApi: NodejsFunction
     private transactionPutApi: NodejsFunction
+    private transactionUpdateLastMessageApi: NodejsFunction
 
     private addPhotoApi: NodejsFunction
     private deletePhotoApi: NodejsFunction
@@ -94,6 +96,7 @@ export class TaskApis extends GenericApi {
         const transactionResource = this.api.root.addResource('transaction')
         const transactionIdResource = transactionResource
             .addResource('{transactionId}')
+        const transactionUpdateLastMessageResource = this.api.root.addResource('updateLastMessage')
         const applicantResource = idResource.addResource('applicant')
         const applyResource = idResource.addResource('apply')
         const passResource = idResource.addResource('pass')
@@ -118,9 +121,10 @@ export class TaskApis extends GenericApi {
             rootResource: this.api.root,
             transactionResource: transactionResource,
             transactionIdResource: transactionIdResource,
+            transactionUpdateLastMessageResource: transactionUpdateLastMessageResource,
             taskTable: props.taskTable.table,
             transactionTable: props.transactionTable.table,
-            bucket: props.taskImageBucket
+            bucket: props.taskImageBucket,
         })
 
     }
@@ -354,6 +358,21 @@ export class TaskApis extends GenericApi {
             authorizer: props.authorizer
         })
 
+        this.transactionUpdateLastMessageApi = this.addMethod({
+            functionName: 'task-transaction-update-last-message-handler',
+            handlerName: 'task-transaction-update-last-message-handler.ts',
+            verb: 'PUT',
+            resource: props.transactionUpdateLastMessageResource,
+            environment: {
+                TASK_TABLE: props.taskTable.tableName,
+                TRANSACTION_TABLE: props.transactionTable.tableName,
+                IMAGE_BUCKET: props.bucket.bucketName
+            },
+            validateRequestBody: false,
+            authorizationType: AuthorizationType.COGNITO,
+            authorizer: props.authorizer
+        })
+
         this.transactionDeleteApi = this.addMethod({
             functionName: 'task-transaction-delete',
             handlerName: 'task-transaction-delete-handler.ts',
@@ -465,6 +484,7 @@ export class TaskApis extends GenericApi {
         props.transactionTable.grantFullAccess(this.transactionPutApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.transactionPostApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.transactionDeleteApi.grantPrincipal)
+        props.transactionTable.grantFullAccess(this.transactionUpdateLastMessageApi.grantPrincipal)
 
         props.taskTable.grantFullAccess(this.listApplicantApi.grantPrincipal)
         props.taskTable.grantFullAccess(this.setMainPhotoApi.grantPrincipal)

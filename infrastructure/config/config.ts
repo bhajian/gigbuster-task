@@ -14,6 +14,7 @@ interface Env {
     adminRoleArn: string | undefined
     profileTableArn: string | undefined
     notificationTableArn: string | undefined
+    expoNotificationAccessToken: string | undefined
 }
 
 interface AppConfig {
@@ -30,6 +31,7 @@ interface AppConfig {
     adminRoleArn: string
     profileTableArn: string
     notificationTableArn: string
+    expoNotificationAccessToken: string
 }
 
 const getConfig = (): Env => {
@@ -46,7 +48,8 @@ const getConfig = (): Env => {
         unauthenticatedRoleArn: configFile.unauthenticatedRoleArn,
         adminRoleArn: configFile.adminRoleArn,
         profileTableArn: configFile.profileTableArn,
-        notificationTableArn: configFile.notificationTableArn
+        notificationTableArn: configFile.notificationTableArn,
+        expoNotificationAccessToken: configFile.expoNotificationAccessToken
     }
 };
 

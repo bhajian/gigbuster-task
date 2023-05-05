@@ -417,7 +417,7 @@ export class TaskService {
             type: photoParams.type,
             identityId: photoParams.identityId
         }
-        const response = await this.documentClient
+        await this.documentClient
             .update({
                 TableName: this.props.taskTable,
                 Key: {
@@ -485,7 +485,6 @@ export class TaskService {
             }).promise()
         return params
     }
-
     async putTransaction(params: TransactionEntity): Promise<any> {
         if(!this.props.transactionTable){
             throw new Error('The transaction table is not passed.')
@@ -504,6 +503,37 @@ export class TaskService {
         return params
     }
 
+    async updateTransaction(params: KeyParams, transactionParams: TransactionEntity): Promise<any> {
+        if(!this.props.transactionTable){
+            throw new Error('The transaction table is not passed.')
+        }
+        const now = new Date().toISOString()
+        transactionParams.lastUpdatedAt = now
+        await this.documentClient
+            .update({
+                TableName: this.props.transactionTable,
+                Key: {
+                    id: transactionParams.id,
+                },
+                ConditionExpression: 'customerId = :userId OR workerId = :userId OR referrerId = :userId',
+                UpdateExpression: 'set lastMessage = :lastMessage ' +
+                    ', lastUpdatedAt = :lastUpdatedAt' +
+                    ', senderId = :senderId' +
+                    ', receiverId = :receiverId' +
+                    ', lastSenderRead = :lastSenderRead' +
+                    ', lastReceiverRead = :lastReceiverRead',
+                ExpressionAttributeValues : {
+                    ':lastMessage': transactionParams.lastMessage,
+                    ':senderId': transactionParams.senderId,
+                    ':receiverId': transactionParams.receiverId,
+                    ':lastSenderRead': transactionParams.lastSenderRead,
+                    ':lastReceiverRead': transactionParams.lastReceiverRead,
+                    ':lastUpdatedAt': now,
+                    ':userId': params.userId
+                }
+            }).promise()
+        return
+    }
     async deleteTransaction(params: KeyParams): Promise<any> {
         if(!this.props.transactionTable){
             throw new Error('The transaction table is not passed.')

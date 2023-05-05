@@ -6,21 +6,25 @@ import {
     TaskEntity,
     KeyParams, TransactionEntity
 } from "./task-types";
+import Expo from "expo-server-sdk";
 
 interface NotificationServiceProps{
     taskTable: string
     transactionTable?: string
     profileTable: string
     notificationTable: string
+    expoAccessToken: string
 }
 
 export class NotificationLogService {
 
     private props: NotificationServiceProps
     private documentClient = new DocumentClient()
+    private expo : Expo
 
     public constructor(props: NotificationServiceProps){
         this.props = props
+        this.expo = new Expo({ accessToken: props.expoAccessToken })
     }
 
     async createTransactionNotification(params: any): Promise<any> {
@@ -28,22 +32,33 @@ export class NotificationLogService {
 
         if(params?.eventName === 'INSERT' && params?.newImage?.status === 'applied'
             && params?.newImage?.type === 'application'){
+            const userId = params?.newImage?.customerId
+
             await this.documentClient
                 .put({
                     TableName: this.props.notificationTable,
                     Item: {
                         id: uuidv4(),
                         dateTime: now.toISOString(),
-                        userId: params?.newImage?.customerId,
+                        userId: userId,
                         type: 'NEW_APPLICATION',
                         subjectId: params?.newImage?.workerId,
                         objectId: params?.newImage?.taskId,
                     },
                 }).promise()
+            const profile = await this.getProfile({
+                userId: userId
+            })
+            await this.sendPushNotification({
+                notificationToken: profile.notificationToken,
+                title: 'New Application.',
+                body: 'Someone responded to the task you posted.'
+            })
         }
         if(params?.eventName === 'MODIFY' && params?.newImage?.type === 'application'
             && params?.newImage?.status === 'applicationAccepted'
             && params?.oldImage?.status === 'applied'){
+            const userId = params?.newImage?.workerId
             await this.documentClient
                 .put({
                     TableName: this.props.notificationTable,
@@ -56,6 +71,14 @@ export class NotificationLogService {
                         objectId: params?.newImage?.taskId,
                     },
                 }).promise()
+            const profile = await this.getProfile({
+                userId: userId
+            })
+            await this.sendPushNotification({
+                notificationToken: profile.notificationToken,
+                title: 'Application Accepted.',
+                body: 'Your response to a task is not accepted.'
+            })
         }
         if(params?.eventName === 'MODIFY' && params?.newImage?.type === 'application'
             && params?.newImage?.status === 'terminated'){
@@ -84,6 +107,21 @@ export class NotificationLogService {
                     },
                 }).promise()
         }
+        if(params?.eventName === 'MODIFY' &&
+            params?.newImage?.lastMessage !== params?.oldImage?.lastMessage){
+            const senderId = params?.newImage?.senderId
+            const receiverId = params?.newImage?.receiverId
+            if(receiverId){
+                const profile = await this.getProfile({
+                    userId: receiverId
+                })
+                await this.sendPushNotification({
+                    notificationToken: profile.notificationToken,
+                    title: 'You have a new message.',
+                    body: 'You have a new message.'
+                })
+            }
+        }
     }
 
     async createTaskNotification(params: any): Promise<any> {
@@ -110,6 +148,48 @@ export class NotificationLogService {
             //             objectId: params?.newImage?.taskId,
             //         },
             //     }).promise()
+        }
+    }
+
+    async getProfile(params: any): Promise<any> {
+        const response = await this.documentClient
+            .get({
+                TableName: this.props.profileTable,
+                Key: {
+                    userId: params.userId,
+                },
+            }).promise()
+        return response.Item
+    }
+
+    async sendPushNotification(params: any): Promise<any> {
+        if (!Expo.isExpoPushToken('expo-push-token')) {
+            console.error(`expo-push-token is not a valid Expo push token`)
+        }
+        const messages = []
+        const message = {
+            to: params.notificationToken,
+            badge: 1,
+            data: { extraData: params.data },
+            title: params.title,
+            body: params.body,
+            sound: {
+                // name: 'default',
+                critical: true,
+                volume: 1
+            }
+        }
+        messages.push(message)
+        let chunks = this.expo.chunkPushNotifications(messages)
+        const tickets = []
+
+        for (const chunk of chunks) {
+            try {
+                const ticketChunk = await this.expo.sendPushNotificationsAsync(chunk)
+                tickets.push(...ticketChunk)
+            } catch (error) {
+                console.error(error)
+            }
         }
     }
 
