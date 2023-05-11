@@ -344,8 +344,7 @@ export class TaskService {
                 },
                 UpdateExpression: 'set #status = :applicationStatus, ' +
                     'lastUpdatedAt = :lastUpdatedAt',
-                ConditionExpression: 'customerId = :customerId ' +
-                    'and workerId = :workerId and taskId = :taskId',
+                ConditionExpression: 'customerId = :customerId ',
                 ExpressionAttributeNames: {
                     '#status': 'status'
                 },
@@ -353,8 +352,6 @@ export class TaskService {
                     ':applicationStatus': 'applicationAccepted',
                     ':lastUpdatedAt': now.toISOString(),
                     ':customerId': params.userId,
-                    ':workerId': params.workerId,
-                    ':taskId': params.taskId,
                 }
             }).promise()
         return {}
@@ -373,8 +370,7 @@ export class TaskService {
                 },
                 UpdateExpression: 'set #status = :applicationStatus, ' +
                     'lastUpdatedAt = :lastUpdatedAt',
-                ConditionExpression: 'customerId = :customerId ' +
-                    'and workerId = :workerId and taskId = :taskId ',
+                ConditionExpression: 'customerId = :customerId ',
                 ExpressionAttributeNames: {
                     '#status': 'status'
                 },
@@ -382,8 +378,6 @@ export class TaskService {
                     ':applicationStatus': 'rejected',
                     ':lastUpdatedAt': now.toISOString(),
                     ':customerId': params.userId,
-                    ':workerId': params.workerId,
-                    ':taskId': params.taskId,
                 }
             }).promise()
         return {}

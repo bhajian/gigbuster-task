@@ -32,13 +32,10 @@ export async function handler(event: APIGatewayProxyEvent, context: Context):
     try {
         const sub = getSub(event)
         const item = getEventBody(event) as KeyParams
-        const taskId = getPathParameter(event, 'id')
 
         await service.rejectApplication({
             transactionId: item.transactionId,
             userId: sub,
-            taskId: taskId,
-            workerId: item.workerId
         })
         result.body = JSON.stringify({success: true})
     } catch (error) {

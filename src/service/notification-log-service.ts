@@ -55,6 +55,31 @@ export class NotificationLogService {
                 body: 'Someone responded to the task you posted.'
             })
         }
+        if(params?.eventName === 'INSERT' && params?.newImage?.status === 'initiated'
+            && params?.newImage?.type === 'referral'){
+            const userId = params?.newImage?.customerId
+
+            await this.documentClient
+                .put({
+                    TableName: this.props.notificationTable,
+                    Item: {
+                        id: uuidv4(),
+                        dateTime: now.toISOString(),
+                        userId: userId,
+                        type: 'NEW_REFERRAL',
+                        subjectId: params?.newImage?.referrerId,
+                        objectId: params?.newImage?.taskId,
+                    },
+                }).promise()
+            const profile = await this.getProfile({
+                userId: userId
+            })
+            await this.sendPushNotification({
+                notificationToken: profile.notificationToken,
+                title: 'New Application.',
+                body: 'You have received a new referral for the task you posted.'
+            })
+        }
         if(params?.eventName === 'MODIFY' && params?.newImage?.type === 'application'
             && params?.newImage?.status === 'applicationAccepted'
             && params?.oldImage?.status === 'applied'){

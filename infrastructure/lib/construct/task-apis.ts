@@ -110,8 +110,8 @@ export class TaskApis extends GenericApi {
         const applyResource = idResource.addResource('apply')
         const passResource = idResource.addResource('pass')
         const withdrawResource = idResource.addResource('withdraw')
-        const acceptResource = idResource.addResource('accept')
-        const rejectResource = idResource.addResource('reject')
+        const acceptResource = transactionResource.addResource('applicationAccept')
+        const rejectResource = transactionResource.addResource('applicationReject')
         const photoResource = idResource.addResource('photo')
         const photoIdResource = photoResource.addResource('{photoId}')
 
@@ -292,8 +292,8 @@ export class TaskApis extends GenericApi {
         })
 
         this.acceptApi = this.addMethod({
-            functionName: 'task-accept',
-            handlerName: 'task-accept-handler.ts',
+            functionName: 'transaction-application-accept-handler',
+            handlerName: 'transaction-application-accept-handler.ts',
             verb: 'PUT',
             resource: props.acceptResource,
             environment: {
@@ -307,8 +307,8 @@ export class TaskApis extends GenericApi {
         })
 
         this.rejectApi = this.addMethod({
-            functionName: 'task-reject',
-            handlerName: 'task-reject-handler.ts',
+            functionName: 'transaction-application-reject-handler',
+            handlerName: 'transaction-application-reject-handler.ts',
             verb: 'PUT',
             resource: props.rejectResource,
             environment: {
