@@ -179,7 +179,7 @@ export class TaskService {
 
     async applyForTask(params: KeyParams): Promise<any> {
         const now = new Date()
-        if(!params.applicantId){
+        if(!params.workerId){
             throw new Error('The applicant id is undefined.')
         }
         if(!params.taskId){
@@ -196,7 +196,7 @@ export class TaskService {
                 KeyConditionExpression: 'taskId = :taskId and workerId = :workerId',
                 ExpressionAttributeValues: {
                     ':taskId': params.taskId,
-                    ':workerId': params.applicantId
+                    ':workerId': params.workerId
                 }
             }).promise()
         const transaction = transactionResponse.Items
@@ -221,7 +221,7 @@ export class TaskService {
                 id: uuidv4(),
                 customerId: task.userId,
                 taskId: params.taskId,
-                workerId: params.applicantId,
+                workerId: params.workerId,
                 type: 'application',
                 createdAt: now.toISOString(),
                 lastUpdatedAt: now.toISOString(),
@@ -242,7 +242,7 @@ export class TaskService {
 
     async passedTask(params: KeyParams): Promise<any> {
         const now = new Date()
-        if(!params.applicantId){
+        if(!params.workerId){
             throw new Error('The applicant id is undefined.')
         }
         if(!params.taskId){
@@ -259,7 +259,7 @@ export class TaskService {
                 KeyConditionExpression: 'taskId = :taskId and workerId = :workerId',
                 ExpressionAttributeValues: {
                     ':taskId': params.taskId,
-                    ':workerId': params.applicantId
+                    ':workerId': params.workerId
                 }
             }).promise()
         const transaction = transactionResponse.Items
@@ -284,7 +284,7 @@ export class TaskService {
                 id: uuidv4(),
                 customerId: task.userId,
                 taskId: params.taskId,
-                workerId: params.applicantId,
+                workerId: params.workerId,
                 type: 'application',
                 createdAt: now.toISOString(),
                 lastUpdatedAt: now.toISOString(),
@@ -353,7 +353,7 @@ export class TaskService {
                     ':applicationStatus': 'applicationAccepted',
                     ':lastUpdatedAt': now.toISOString(),
                     ':customerId': params.userId,
-                    ':workerId': params.applicantId,
+                    ':workerId': params.workerId,
                     ':taskId': params.taskId,
                 }
             }).promise()
@@ -382,8 +382,60 @@ export class TaskService {
                     ':applicationStatus': 'rejected',
                     ':lastUpdatedAt': now.toISOString(),
                     ':customerId': params.userId,
-                    ':workerId': params.applicantId,
+                    ':workerId': params.workerId,
                     ':taskId': params.taskId,
+                }
+            }).promise()
+        return {}
+    }
+
+    async acceptTransactionRequest(params: KeyParams): Promise<any> {
+        const now = new Date()
+        if(!this.props.transactionTable){
+            throw new Error('The transaction table is not passed.')
+        }
+        await this.documentClient
+            .update({
+                TableName: this.props.transactionTable,
+                Key: {
+                    id: params.transactionId,
+                },
+                UpdateExpression: 'set #status = :requestStatus, ' +
+                    'lastUpdatedAt = :lastUpdatedAt',
+                ConditionExpression: 'customerId = :customerId ',
+                ExpressionAttributeNames: {
+                    '#status': 'status'
+                },
+                ExpressionAttributeValues : {
+                    ':requestStatus': 'requestAccepted',
+                    ':lastUpdatedAt': now.toISOString(),
+                    ':customerId': params.userId,
+                }
+            }).promise()
+        return {}
+    }
+
+    async rejectTransactionRequest(params: KeyParams): Promise<any> {
+        const now = new Date()
+        if(!this.props.transactionTable){
+            throw new Error('The transaction table is not passed.')
+        }
+        await this.documentClient
+            .update({
+                TableName: this.props.transactionTable,
+                Key: {
+                    id: params.transactionId,
+                },
+                UpdateExpression: 'set #status = :requestStatus, ' +
+                    'lastUpdatedAt = :lastUpdatedAt',
+                ConditionExpression: 'customerId = :customerId ',
+                ExpressionAttributeNames: {
+                    '#status': 'status'
+                },
+                ExpressionAttributeValues : {
+                    ':requestStatus': 'rejected',
+                    ':lastUpdatedAt': now.toISOString(),
+                    ':customerId': params.userId,
                 }
             }).promise()
         return {}
@@ -485,6 +537,7 @@ export class TaskService {
             }).promise()
         return params
     }
+    
     async putTransaction(params: TransactionEntity): Promise<any> {
         if(!this.props.transactionTable){
             throw new Error('The transaction table is not passed.')
@@ -566,26 +619,26 @@ export class TaskService {
         }
         let transactionComplex = undefined
 
-        const referrerResponse = await this.documentClient
-            .query({
-                TableName: this.props.transactionTable,
-                IndexName: 'referrerIdIndex',
-                KeyConditionExpression: 'referrerId = :referrerId',
-                FilterExpression: '#status <> :terminated',
-                ExpressionAttributeValues: {
-                    ':referrerId': params.userId,
-                    ':terminated': 'terminated'
-                },
-                ExpressionAttributeNames: {
-                    '#status': 'status'
-                },
-                ScanIndexForward: false,
-                Limit: params.Limit,
-                ExclusiveStartKey: params.lastEvaluatedKey
-            }).promise()
-        const referrerTransactions = referrerResponse?.Items ? referrerResponse?.Items : []
-
         if(params?.persona === 'CONSUMER'){
+            const referrerResponse = await this.documentClient
+                .query({
+                    TableName: this.props.transactionTable,
+                    IndexName: 'referrerIdIndex',
+                    KeyConditionExpression: 'referrerId = :referrerId',
+                    FilterExpression: '#status = :accepted',
+                    ExpressionAttributeValues: {
+                        ':referrerId': params.userId,
+                        ':accepted': 'requestAccepted'
+                    },
+                    ExpressionAttributeNames: {
+                        '#status': 'status'
+                    },
+                    ScanIndexForward: false,
+                    Limit: params.Limit,
+                    ExclusiveStartKey: params.lastEvaluatedKey
+                }).promise()
+            const referrerTransactions = referrerResponse?.Items ? referrerResponse?.Items : []
+
             const response = await this.documentClient
                 .query({
                     TableName: this.props.transactionTable,
@@ -635,7 +688,7 @@ export class TaskService {
                     ExclusiveStartKey: params.lastEvaluatedKey
                 }).promise()
             const transactions = response?.Items ? response?.Items : []
-            transactionComplex = [...transactions, ...referrerTransactions]
+            transactionComplex = transactions
         }
         transactionComplex = await this.mergeTransactions(transactionComplex)
         return transactionComplex

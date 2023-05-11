@@ -38,7 +38,7 @@ export async function handler(event: APIGatewayProxyEvent, context: Context):
             transactionId: item.transactionId,
             userId: sub,
             taskId: taskId,
-            applicantId: sub
+            workerId: sub
         })
         result.body = JSON.stringify({success: true})
     } catch (error) {

@@ -31,6 +31,8 @@ export interface TaskApiProps {
     queryResource: IResource
     idResource: IResource,
     transactionResource: IResource
+    transactionRequestAcceptResource: IResource
+    transactionRequestRejectResource: IResource
     transactionIdResource: IResource,
     transactionUpdateLastMessageResource: IResource
     photoResource: IResource
@@ -61,6 +63,8 @@ export class TaskApis extends GenericApi {
     private transactionPostApi: NodejsFunction
     private transactionDeleteApi: NodejsFunction
     private transactionPutApi: NodejsFunction
+    private transactionRequestAcceptApi: NodejsFunction
+    private transactionRequestRejectApi: NodejsFunction
     private transactionUpdateLastMessageApi: NodejsFunction
 
     private addPhotoApi: NodejsFunction
@@ -96,7 +100,12 @@ export class TaskApis extends GenericApi {
         const transactionResource = this.api.root.addResource('transaction')
         const transactionIdResource = transactionResource
             .addResource('{transactionId}')
-        const transactionUpdateLastMessageResource = this.api.root.addResource('updateLastMessage')
+        const transactionUpdateLastMessageResource = this.api.root
+            .addResource('updateLastMessage')
+        const transactionRequestAcceptResource = transactionResource
+            .addResource('requestAccept')
+        const transactionRequestRejectResource = transactionResource
+            .addResource('requestReject')
         const applicantResource = idResource.addResource('applicant')
         const applyResource = idResource.addResource('apply')
         const passResource = idResource.addResource('pass')
@@ -121,6 +130,8 @@ export class TaskApis extends GenericApi {
             rootResource: this.api.root,
             transactionResource: transactionResource,
             transactionIdResource: transactionIdResource,
+            transactionRequestAcceptResource: transactionRequestAcceptResource,
+            transactionRequestRejectResource: transactionRequestRejectResource,
             transactionUpdateLastMessageResource: transactionUpdateLastMessageResource,
             taskTable: props.taskTable.table,
             transactionTable: props.transactionTable.table,
@@ -358,6 +369,36 @@ export class TaskApis extends GenericApi {
             authorizer: props.authorizer
         })
 
+        this.transactionRequestAcceptApi = this.addMethod({
+            functionName: 'transaction-request-accept-handler',
+            handlerName: 'transaction-request-accept-handler.ts',
+            verb: 'PUT',
+            resource: props.transactionRequestAcceptResource,
+            environment: {
+                TASK_TABLE: props.taskTable.tableName,
+                TRANSACTION_TABLE: props.transactionTable.tableName,
+                IMAGE_BUCKET: props.bucket.bucketName
+            },
+            validateRequestBody: false,
+            authorizationType: AuthorizationType.COGNITO,
+            authorizer: props.authorizer
+        })
+
+        this.transactionRequestRejectApi = this.addMethod({
+            functionName: 'transaction-request-reject-handler',
+            handlerName: 'transaction-request-reject-handler.ts',
+            verb: 'PUT',
+            resource: props.transactionRequestRejectResource,
+            environment: {
+                TASK_TABLE: props.taskTable.tableName,
+                TRANSACTION_TABLE: props.transactionTable.tableName,
+                IMAGE_BUCKET: props.bucket.bucketName
+            },
+            validateRequestBody: false,
+            authorizationType: AuthorizationType.COGNITO,
+            authorizer: props.authorizer
+        })
+
         this.transactionUpdateLastMessageApi = this.addMethod({
             functionName: 'task-transaction-update-last-message-handler',
             handlerName: 'task-transaction-update-last-message-handler.ts',
@@ -480,6 +521,8 @@ export class TaskApis extends GenericApi {
         props.transactionTable.grantFullAccess(this.withdrawApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.acceptApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.rejectApi.grantPrincipal)
+        props.transactionTable.grantFullAccess(this.transactionRequestAcceptApi.grantPrincipal)
+        props.transactionTable.grantFullAccess(this.transactionRequestRejectApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.transactionQueryApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.transactionPutApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.transactionPostApi.grantPrincipal)

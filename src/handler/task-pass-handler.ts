@@ -35,7 +35,7 @@ export async function handler(event: APIGatewayProxyEvent, context: Context):
 
         const transaction = await service.passedTask({
             taskId: taskId,
-            applicantId: sub
+            workerId: sub
         })
         result.body = JSON.stringify(transaction)
     } catch (error) {

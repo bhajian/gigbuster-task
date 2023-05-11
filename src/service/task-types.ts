@@ -1,7 +1,8 @@
 export interface KeyParams {
     transactionId?: string
     userId?: string
-    applicantId?: string
+    workerId?: string
+    referrerId?: string
     taskId?: string
 }
 export interface PhotoEntry {
