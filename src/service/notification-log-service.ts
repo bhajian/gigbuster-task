@@ -44,6 +44,7 @@ export class NotificationLogService {
                         type: 'NEW_APPLICATION',
                         subjectId: params?.newImage?.workerId,
                         objectId: params?.newImage?.taskId,
+                        transactionId: params?.newImage?.id,
                     },
                 }).promise()
             const profile = await this.getProfile({
@@ -69,6 +70,7 @@ export class NotificationLogService {
                         type: 'NEW_REFERRAL',
                         subjectId: params?.newImage?.referrerId,
                         objectId: params?.newImage?.taskId,
+                        transactionId: params?.newImage?.id,
                     },
                 }).promise()
             const profile = await this.getProfile({
@@ -94,6 +96,7 @@ export class NotificationLogService {
                         type: 'APPLICATION_ACCEPTED',
                         subjectId: params?.newImage?.customerId,
                         objectId: params?.newImage?.taskId,
+                        transactionId: params?.newImage?.id,
                     },
                 }).promise()
             const profile = await this.getProfile({
@@ -102,7 +105,7 @@ export class NotificationLogService {
             await this.sendPushNotification({
                 notificationToken: profile.notificationToken,
                 title: 'Application Accepted.',
-                body: 'Your response to a task is not accepted.'
+                body: 'Your response to a task is accepted by the customer.'
             })
         }
         if(params?.eventName === 'MODIFY' && params?.newImage?.type === 'application'
@@ -114,9 +117,10 @@ export class NotificationLogService {
                         id: uuidv4(),
                         dateTime: now.toISOString(),
                         userId: params?.newImage?.workerId,
-                        type: 'CHAT_TERMINATED',
+                        type: 'TRANSACTION_TERMINATED',
                         subjectId: params?.newImage?.customerId,
                         objectId: params?.newImage?.taskId,
+                        transactionId: params?.newImage?.id,
                     },
                 }).promise()
             await this.documentClient
@@ -126,9 +130,10 @@ export class NotificationLogService {
                         id: uuidv4(),
                         dateTime: now.toISOString(),
                         userId: params?.newImage?.customerId,
-                        type: 'CHAT_TERMINATED',
+                        type: 'TRANSACTION_TERMINATED',
                         subjectId: params?.newImage?.workerId,
                         objectId: params?.newImage?.taskId,
+                        transactionId: params?.newImage?.id,
                     },
                 }).promise()
         }
@@ -143,7 +148,8 @@ export class NotificationLogService {
                 await this.sendPushNotification({
                     notificationToken: profile.notificationToken,
                     title: 'You have a new message.',
-                    body: 'You have a new message.'
+                    body: 'You have a new message.',
+                    data: params?.newImage?.id,
                 })
             }
         }

@@ -567,14 +567,12 @@ export class TaskService {
                     ', lastUpdatedAt = :lastUpdatedAt' +
                     ', senderId = :senderId' +
                     ', receiverId = :receiverId' +
-                    ', lastSenderRead = :lastSenderRead' +
-                    ', lastReceiverRead = :lastReceiverRead',
+                    ', lastMessageRead = :lastMessageRead',
                 ExpressionAttributeValues : {
                     ':lastMessage': transactionParams.lastMessage,
                     ':senderId': transactionParams.senderId,
                     ':receiverId': transactionParams.receiverId,
-                    ':lastSenderRead': transactionParams.lastSenderRead,
-                    ':lastReceiverRead': transactionParams.lastReceiverRead,
+                    ':lastMessageRead': transactionParams.lastMessageRead,
                     ':lastUpdatedAt': now,
                     ':userId': params.userId
                 }
