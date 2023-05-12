@@ -16,7 +16,7 @@ interface NotificationServiceProps{
     expoAccessToken: string
 }
 
-export class NotificationLogService {
+export class NotificationService {
 
     private props: NotificationServiceProps
     private documentClient = new DocumentClient()
@@ -191,6 +191,30 @@ export class NotificationLogService {
                 },
             }).promise()
         return response.Item
+    }
+
+    async sendNotification(params: any): Promise<any> {
+        await this.documentClient
+            .put({
+                TableName: this.props.notificationTable,
+                Item: {
+                    id: uuidv4(),
+                    dateTime: params.time?.toISOString(),
+                    userId: params.userId,
+                    type: params.notificationType,
+                    subjectId: params.subjectId,
+                    objectId: params.objectId,
+                    transactionId: params.transactionId,
+                },
+            }).promise()
+        const profile = await this.getProfile({
+            userId: params.userId
+        })
+        await this.sendPushNotification({
+            notificationToken: profile.notificationToken,
+            title: params.notificationTitle,
+            body: params.notificationBody
+        })
     }
 
     async sendPushNotification(params: any): Promise<any> {

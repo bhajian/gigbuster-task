@@ -12,6 +12,7 @@ import {Bucket} from "aws-cdk-lib/aws-s3";
 export interface ApiProps {
     taskTable: GenericDynamoTable
     transactionTable: GenericDynamoTable
+    cardTable: GenericDynamoTable
     taskImageBucket: Bucket
 }
 

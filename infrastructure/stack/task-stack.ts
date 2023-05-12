@@ -18,12 +18,14 @@ export class TaskStack extends Stack {
               props?: cdk.StackProps) {
     super(scope, id, props);
     this.taskApis = new TaskApis(this,id, {
+      cardTable: taskApiProps.taskApiStatefulStack.cardTable,
       taskTable: taskApiProps.taskApiStatefulStack.taskTable,
       transactionTable: taskApiProps.taskApiStatefulStack.transactionTable,
       taskImageBucket: taskApiProps.taskApiStatefulStack.taskImageBucket
     })
 
     this.taskFunctions = new TaskAyncFunctions(this, 'taskAsyncFunctionsId', {
+      cardTable: taskApiProps.taskApiStatefulStack.cardTable,
       taskTable: taskApiProps.taskApiStatefulStack.taskTable,
       transactionTable: taskApiProps.taskApiStatefulStack.transactionTable
     })

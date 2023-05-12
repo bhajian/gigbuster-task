@@ -11,6 +11,7 @@ import {Effect, PolicyStatement, Role} from "aws-cdk-lib/aws-iam";
 export class TaskStatefulStack extends Stack {
     public taskTable: GenericDynamoTable
     public transactionTable: GenericDynamoTable
+    public cardTable: GenericDynamoTable
     public taskImageBucket: Bucket
     private suffix: string;
 
@@ -19,6 +20,7 @@ export class TaskStatefulStack extends Stack {
         this.initializeSuffix()
         this.initializeTaskDynamoDBTable()
         this.initializeTransactionDynamoDBTable()
+        this.initializeCardsDynamoDBTable()
         this.initializeTaskPhotosBucket()
         this.initializeBucketPolicies()
     }
@@ -98,6 +100,41 @@ export class TaskStatefulStack extends Stack {
             sortKeyType: AttributeType.STRING,
         })
     }
+
+    private initializeCardsDynamoDBTable() {
+        this.cardTable = new GenericDynamoTable(this,
+            'CardsDynamoDBTable', {
+                removalPolicy: RemovalPolicy.DESTROY,
+                tableName: `Cards-${config.envName}-${this.suffix}`,
+                stream: StreamViewType.NEW_AND_OLD_IMAGES,
+                primaryKey: 'userId',
+                keyType: AttributeType.STRING,
+                sortKeyName: 'taskId',
+                sortKeyType: AttributeType.STRING
+            })
+        this.cardTable.addGlobalSecondaryIndexes({
+            indexName: 'distanceIndex',
+            partitionKeyName: 'userId',
+            partitionKeyType: AttributeType.STRING,
+            sortKeyName: 'distance',
+            sortKeyType: AttributeType.NUMBER,
+        })
+        this.cardTable.addGlobalSecondaryIndexes({
+            indexName: 'categoryIndex',
+            partitionKeyName: 'userId',
+            partitionKeyType: AttributeType.STRING,
+            sortKeyName: 'category',
+            sortKeyType: AttributeType.STRING,
+        })
+        this.cardTable.addGlobalSecondaryIndexes({
+            indexName: 'statusIndex',
+            partitionKeyName: 'userId',
+            partitionKeyType: AttributeType.STRING,
+            sortKeyName: 'status',
+            sortKeyType: AttributeType.STRING,
+        })
+    }
+
 
     private initializeTaskPhotosBucket() {
         this.taskImageBucket = new Bucket(this, 'task-image', {
