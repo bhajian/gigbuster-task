@@ -47,9 +47,12 @@ export class TaskService {
         const response = await this.documentClient
             .scan({
                 TableName: this.props.taskTable,
-                ProjectionExpression: 'id, country, stateProvince, city, userId, ' +
+                ProjectionExpression: 'id, country, stateProvince, city, userId, #location,' +
                     'price, priceUnit, category, description, taskStatus, photos',
                 FilterExpression: 'userId <> :userId and taskStatus = :taskStatus',
+                ExpressionAttributeNames: {
+                    '#location': 'location'
+                },
                 ExpressionAttributeValues : {
                     ':userId' : params.userId,
                     ':taskStatus': 'active'
@@ -82,7 +85,6 @@ export class TaskService {
                 name: (profile && profile.name? profile.name : ''),
                 accountCode: ( profile && profile.accountCode ?
                     profile.accountCode: ''),
-                location: (profile && profile.location ? profile.location : {}),
                 profilePhoto: ( profile && profile.photos && profile.photos[0] ?
                     profile.photos[0]: undefined)
             })
