@@ -93,6 +93,56 @@ export class TaskService {
         return response
     }
 
+    async listCards(params: any): Promise<any> {
+        const response = await this.documentClient
+            .scan({
+                TableName: this.props.taskTable,
+                ProjectionExpression: 'id, country, stateProvince, city, userId, #location,' +
+                    'price, priceUnit, category, description, taskStatus, photos',
+                FilterExpression: 'userId <> :userId and taskStatus = :taskStatus',
+                ExpressionAttributeNames: {
+                    '#location': 'location'
+                },
+                ExpressionAttributeValues : {
+                    ':userId' : params.userId,
+                    ':taskStatus': 'active'
+                },
+                Limit: params.limit,
+                ExclusiveStartKey: params.lastEvaluatedKey
+            }).promise()
+        if (!response || response?.Items === undefined) {
+            return {}
+        }
+        const tasks = response.Items
+        let userIds = []
+        let tasksMap = new Map<string, any>()
+        if (tasks) {
+            for (let i = 0; i < tasks.length; i++) {
+                const userId = tasks[i].userId
+                if(tasksMap.has(userId)){
+                } else {
+                    userIds.push({userId: tasks[i].userId})
+                    tasksMap.set(userId, tasks[i])
+                }
+            }
+        }
+        const {profiles} = await this.batchGetProfiles(userIds, [])
+        const complexTasks : any[] = []
+        for (let i = 0; i < tasks.length; i++) {
+            const profile = profiles.get(tasks[i].userId)
+            complexTasks.push({
+                ...tasks[i],
+                name: (profile && profile.name? profile.name : ''),
+                accountCode: ( profile && profile.accountCode ?
+                    profile.accountCode: ''),
+                profilePhoto: ( profile && profile.photos && profile.photos[0] ?
+                    profile.photos[0]: undefined)
+            })
+        }
+        response.Items = complexTasks
+        return response
+    }
+
     async get(params: KeyParams): Promise<TaskEntity> {
         const response = await this.documentClient
             .get({

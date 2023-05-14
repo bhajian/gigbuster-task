@@ -26,10 +26,12 @@ export interface AuthorizerProps {
 export interface TaskApiProps {
     taskTable: Table
     transactionTable: Table
+    cardTable: Table
     bucket: Bucket
     authorizer: CognitoUserPoolsAuthorizer
     rootResource: IResource
     queryResource: IResource
+    cardResource: IResource
     idResource: IResource,
     transactionResource: IResource
     transactionRequestAcceptResource: IResource
@@ -49,6 +51,7 @@ export interface TaskApiProps {
 export class TaskApis extends GenericApi {
     private listApi: NodejsFunction
     private queryApi: NodejsFunction
+    private listCardApi: NodejsFunction
     private getApi: NodejsFunction
     private postApi: NodejsFunction
     private putApi: NodejsFunction
@@ -98,6 +101,7 @@ export class TaskApis extends GenericApi {
 
         const idResource = this.api.root.addResource('{id}')
         const queryResource = this.api.root.addResource('query')
+        const cardResource = this.api.root.addResource('card')
         const transactionResource = this.api.root.addResource('transaction')
         const transactionIdResource = transactionResource
             .addResource('{transactionId}')
@@ -128,6 +132,7 @@ export class TaskApis extends GenericApi {
             authorizer: authorizer,
             idResource: idResource,
             queryResource: queryResource,
+            cardResource: cardResource,
             rootResource: this.api.root,
             transactionResource: transactionResource,
             transactionIdResource: transactionIdResource,
@@ -136,6 +141,7 @@ export class TaskApis extends GenericApi {
             transactionUpdateLastMessageResource: transactionUpdateLastMessageResource,
             taskTable: props.taskTable.table,
             transactionTable: props.transactionTable.table,
+            cardTable: props.cardTable.table,
             bucket: props.taskImageBucket,
         })
 
@@ -163,6 +169,21 @@ export class TaskApis extends GenericApi {
             handlerName: 'task-query-handler.ts',
             verb: 'GET',
             resource: props.queryResource,
+            environment: {
+                TABLE: props.taskTable.tableName,
+                PROFILE_TABLE: profileITable.tableName,
+                IMAGE_BUCKET: props.bucket.bucketName
+            },
+            validateRequestBody: false,
+            authorizationType: AuthorizationType.COGNITO,
+            authorizer: props.authorizer
+        })
+
+        this.listCardApi = this.addMethod({
+            functionName: 'task-list-cards-handler',
+            handlerName: 'task-list-cards-handler.ts',
+            verb: 'GET',
+            resource: props.cardResource,
             environment: {
                 TABLE: props.taskTable.tableName,
                 PROFILE_TABLE: profileITable.tableName,
@@ -504,6 +525,7 @@ export class TaskApis extends GenericApi {
 
         props.taskTable.grantFullAccess(this.listApi.grantPrincipal)
         props.taskTable.grantFullAccess(this.queryApi.grantPrincipal)
+        props.taskTable.grantFullAccess(this.listCardApi.grantPrincipal)
         props.taskTable.grantFullAccess(this.getApi.grantPrincipal)
         props.taskTable.grantFullAccess(this.postApi.grantPrincipal)
         props.taskTable.grantFullAccess(this.putApi.grantPrincipal)
@@ -516,6 +538,7 @@ export class TaskApis extends GenericApi {
         props.taskTable.grantFullAccess(this.acceptApi.grantPrincipal)
         props.taskTable.grantFullAccess(this.rejectApi.grantPrincipal)
 
+        props.transactionTable.grantFullAccess(this.listCardApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.listApplicantApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.passApi.grantPrincipal)
         props.transactionTable.grantFullAccess(this.applyApi.grantPrincipal)
@@ -540,7 +563,10 @@ export class TaskApis extends GenericApi {
 
         profileITable.grantFullAccess(this.listApplicantApi.grantPrincipal)
         profileITable.grantFullAccess(this.queryApi.grantPrincipal)
+        profileITable.grantFullAccess(this.listCardApi.grantPrincipal)
         profileITable.grantFullAccess(this.transactionQueryApi.grantPrincipal)
+
+        props.cardTable.grantFullAccess(this.listCardApi.grantPrincipal)
     }
 
     public getProfileTable() : ITable {
