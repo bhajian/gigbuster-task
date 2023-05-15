@@ -147,7 +147,7 @@ export class TaskService {
         const complexTasks : any[] = []
 
         for (let i = 0; i < cards.length; i++) {
-            const profile = profiles.get(cards[i].userId)
+            const profile = profiles.get(cards[i].customerId)
             const task = tasks.get(cards[i].taskId)
             complexTasks.push({
                 ...cards[i],
