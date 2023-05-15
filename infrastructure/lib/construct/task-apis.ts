@@ -185,9 +185,10 @@ export class TaskApis extends GenericApi {
             verb: 'GET',
             resource: props.cardResource,
             environment: {
-                TABLE: props.taskTable.tableName,
+                TASK_TABLE: props.taskTable.tableName,
                 PROFILE_TABLE: profileITable.tableName,
-                IMAGE_BUCKET: props.bucket.bucketName
+                CARD_TABLE: props.cardTable.tableName,
+                IMAGE_BUCKET: props.bucket.bucketName,
             },
             validateRequestBody: false,
             authorizationType: AuthorizationType.COGNITO,
@@ -276,6 +277,7 @@ export class TaskApis extends GenericApi {
             environment: {
                 TASK_TABLE: props.taskTable.tableName,
                 TRANSACTION_TABLE: props.transactionTable.tableName,
+                CARD_TABLE: props.cardTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -291,6 +293,7 @@ export class TaskApis extends GenericApi {
             environment: {
                 TASK_TABLE: props.taskTable.tableName,
                 TRANSACTION_TABLE: props.transactionTable.tableName,
+                CARD_TABLE: props.cardTable.tableName,
                 IMAGE_BUCKET: props.bucket.bucketName
             },
             validateRequestBody: false,
@@ -531,7 +534,6 @@ export class TaskApis extends GenericApi {
         props.taskTable.grantFullAccess(this.putApi.grantPrincipal)
         props.taskTable.grantFullAccess(this.deleteApi.grantPrincipal)
         props.taskTable.grantFullAccess(this.listApplicantApi.grantPrincipal)
-
         props.taskTable.grantFullAccess(this.passApi.grantPrincipal)
         props.taskTable.grantFullAccess(this.applyApi.grantPrincipal)
         props.taskTable.grantFullAccess(this.withdrawApi.grantPrincipal)
@@ -567,6 +569,8 @@ export class TaskApis extends GenericApi {
         profileITable.grantFullAccess(this.transactionQueryApi.grantPrincipal)
 
         props.cardTable.grantFullAccess(this.listCardApi.grantPrincipal)
+        props.cardTable.grantFullAccess(this.applyApi.grantPrincipal)
+        props.cardTable.grantFullAccess(this.passApi.grantPrincipal)
     }
 
     public getProfileTable() : ITable {

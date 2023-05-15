@@ -7,12 +7,14 @@ import {Env} from "../lib/env";
 import {TaskService} from "../service/task-service";
 import {getQueryString, getSub} from "../lib/utils";
 
-const table = Env.get('TABLE')
+const taskTable = Env.get('TASK_TABLE')
+const cardTable = Env.get('CARD_TABLE')
 const bucket = Env.get('IMAGE_BUCKET')
 const profileTable = Env.get('PROFILE_TABLE')
 const service = new TaskService({
     profileTable: profileTable,
-    taskTable: table,
+    taskTable: taskTable,
+    cardTable: cardTable,
     bucket: bucket
 })
 

@@ -36,6 +36,7 @@ export interface TaskEntity {
     description: string
     createdDateTime: string
     validTillDateTime: string
+    lastUpdated: string
     photos: [PhotoEntry]
     location: Location
     city: string

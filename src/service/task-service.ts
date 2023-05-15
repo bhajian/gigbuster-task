@@ -10,6 +10,7 @@ import {
 interface TaskServiceProps{
     taskTable: string
     transactionTable?: string
+    cardTable?: string
     profileTable: string
     bucket: string
 }
@@ -94,18 +95,20 @@ export class TaskService {
     }
 
     async listCards(params: any): Promise<any> {
+        if(!this.props.cardTable){
+            throw new Error('The transaction table is not passed.')
+        }
         const response = await this.documentClient
-            .scan({
-                TableName: this.props.taskTable,
-                ProjectionExpression: 'id, country, stateProvince, city, userId, #location,' +
-                    'price, priceUnit, category, description, taskStatus, photos',
-                FilterExpression: 'userId <> :userId and taskStatus = :taskStatus',
-                ExpressionAttributeNames: {
-                    '#location': 'location'
-                },
+            .query({
+                TableName: this.props.cardTable,
+                IndexName: 'statusIndex',
+                KeyConditionExpression: 'userId = :userId and #status = :status',
                 ExpressionAttributeValues : {
                     ':userId' : params.userId,
-                    ':taskStatus': 'active'
+                    ':status': 'NEW'
+                },
+                ExpressionAttributeNames: {
+                    '#status': 'status'
                 },
                 Limit: params.limit,
                 ExclusiveStartKey: params.lastEvaluatedKey
@@ -113,34 +116,50 @@ export class TaskService {
         if (!response || response?.Items === undefined) {
             return {}
         }
-        const tasks = response.Items
+        const cards = response.Items
+        const complexCards = await this.joinCards(cards)
+        response.Items = complexCards
+        return response
+    }
+
+    async joinCards(cards: any[]): Promise<any> {
         let userIds = []
-        let tasksMap = new Map<string, any>()
-        if (tasks) {
-            for (let i = 0; i < tasks.length; i++) {
-                const userId = tasks[i].userId
-                if(tasksMap.has(userId)){
+        let taskIds = []
+        let keyMap = new Map<string, any>()
+        if (cards && cards?.length > 0) {
+            for (let i = 0; i < cards.length; i++) {
+                const userId = cards[i].userId
+                const taskId = cards[i].taskId
+                if(keyMap.has(userId)){
                 } else {
-                    userIds.push({userId: tasks[i].userId})
-                    tasksMap.set(userId, tasks[i])
+                    userIds.push({userId: cards[i].userId})
+                    keyMap.set(userId, 1)
+                }
+
+                if(keyMap.has(taskId)){
+                } else {
+                    taskIds.push({id: cards[i].taskId})
+                    keyMap.set(taskId, 1)
                 }
             }
         }
-        const {profiles} = await this.batchGetProfiles(userIds, [])
+        const {profiles, tasks} = await this.batchGetProfiles(userIds, taskIds)
         const complexTasks : any[] = []
-        for (let i = 0; i < tasks.length; i++) {
-            const profile = profiles.get(tasks[i].userId)
+
+        for (let i = 0; i < cards.length; i++) {
+            const profile = profiles.get(cards[i].userId)
+            const task = tasks.get(cards[i].taskId)
             complexTasks.push({
-                ...tasks[i],
+                ...cards[i],
                 name: (profile && profile.name? profile.name : ''),
                 accountCode: ( profile && profile.accountCode ?
                     profile.accountCode: ''),
                 profilePhoto: ( profile && profile.photos && profile.photos[0] ?
-                    profile.photos[0]: undefined)
+                    profile.photos[0]: undefined),
+                ...task
             })
         }
-        response.Items = complexTasks
-        return response
+        return complexTasks
     }
 
     async get(params: KeyParams): Promise<TaskEntity> {
@@ -168,7 +187,9 @@ export class TaskService {
     }
 
     async put(params: TaskEntity): Promise<TaskEntity> {
+        const now = new Date().toISOString()
         params.taskStatus = 'active'
+        params.lastUpdated = now
         const response = await this.documentClient
             .put({
                 TableName: this.props.taskTable,
@@ -240,6 +261,9 @@ export class TaskService {
         if(!this.props.transactionTable){
             throw new Error('The transaction table is not passed.')
         }
+        if(!this.props.cardTable){
+            throw new Error('The card table is not passed.')
+        }
 
         const transactionResponse = await this.documentClient
             .query({
@@ -285,11 +309,29 @@ export class TaskService {
                     TableName: this.props.transactionTable,
                     Item: newTransaction,
                 }).promise()
+
+            await this.documentClient
+                .update({
+                    TableName: this.props.cardTable,
+                    Key: {
+                        userId: params.workerId,
+                        taskId: params.taskId,
+                    },
+                    UpdateExpression: 'set #status = :status, ' +
+                        'lastUpdatedAt = :lastUpdatedAt',
+                    ExpressionAttributeNames: {
+                        '#status': 'status'
+                    },
+                    ExpressionAttributeValues : {
+                        ':status': 'APPLIED',
+                        ':lastUpdatedAt': now.toISOString(),
+                    }
+                }).promise()
+
             return newTransaction
         } else {
             throw new Error('The task does not exist.')
         }
-        return {}
     }
 
     async passedTask(params: KeyParams): Promise<any> {
@@ -300,58 +342,28 @@ export class TaskService {
         if(!params.taskId){
             throw new Error('The task id is undefined.')
         }
-        if(!this.props.transactionTable){
+        if(!this.props.cardTable){
             throw new Error('The transaction table is not passed.')
         }
 
-        const transactionResponse = await this.documentClient
-            .query({
-                TableName: this.props.transactionTable,
-                IndexName: 'taskWorkerIdIndex',
-                KeyConditionExpression: 'taskId = :taskId and workerId = :workerId',
-                ExpressionAttributeValues: {
-                    ':taskId': params.taskId,
-                    ':workerId': params.workerId
+        await this.documentClient
+            .update({
+                TableName: this.props.cardTable,
+                Key: {
+                    userId: params.workerId,
+                    taskId: params.taskId,
+                },
+                UpdateExpression: 'set #status = :status, ' +
+                    'lastUpdatedAt = :lastUpdatedAt',
+                ExpressionAttributeNames: {
+                    '#status': 'status'
+                },
+                ExpressionAttributeValues : {
+                    ':status': 'PASSED',
+                    ':lastUpdatedAt': now.toISOString(),
                 }
             }).promise()
-        const transaction = transactionResponse.Items
-        if(transaction && transaction?.length > 0){
-            return {
-                success: false,
-                message: 'The User already passed the task.'
-            }
-        }
 
-        const taskResponse = await this.documentClient
-            .get({
-                TableName: this.props.taskTable,
-                Key: {
-                    id: params.taskId,
-                },
-            }).promise()
-        const task = taskResponse.Item
-
-        if (task) {
-            const newTransaction: TransactionEntity = {
-                id: uuidv4(),
-                customerId: task.userId,
-                taskId: params.taskId,
-                workerId: params.workerId,
-                type: 'application',
-                createdAt: now.toISOString(),
-                lastUpdatedAt: now.toISOString(),
-                status: 'passed'
-            }
-
-            await this.documentClient
-                .put({
-                    TableName: this.props.transactionTable,
-                    Item: newTransaction,
-                }).promise()
-            return newTransaction
-        } else {
-            throw new Error('The task does not exist.')
-        }
         return {}
     }
 
