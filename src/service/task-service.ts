@@ -132,7 +132,7 @@ export class TaskService {
                 const taskId = cards[i].taskId
                 if(keyMap.has(userId)){
                 } else {
-                    userIds.push({userId: cards[i].userId})
+                    userIds.push({userId: userId})
                     keyMap.set(userId, 1)
                 }
 
@@ -151,7 +151,7 @@ export class TaskService {
             const task = tasks.get(cards[i].taskId)
             complexTasks.push({
                 ...cards[i],
-                name: (profile && profile.name? profile.name : ''),
+                name: (profile?.name? profile.name : ''),
                 accountCode: ( profile && profile.accountCode ?
                     profile.accountCode: ''),
                 profilePhoto: ( profile && profile.photos && profile.photos[0] ?
