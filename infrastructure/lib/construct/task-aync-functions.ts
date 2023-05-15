@@ -17,6 +17,7 @@ export interface ProfileAsyncProps {
 export class TaskAyncFunctions extends GenericAsyncFunction {
     transactionTableStream: NodejsFunction
     taskTableStream: NodejsFunction
+    profileTableStream: NodejsFunction
     props: ProfileAsyncProps
 
     public constructor(scope: Construct, id: string, props: ProfileAsyncProps) {
@@ -57,6 +58,18 @@ export class TaskAyncFunctions extends GenericAsyncFunction {
             externalModules: []
         })
 
+        this.profileTableStream = this.addFunction({
+            functionName: 'profile-table-stream-handler',
+            handlerName: 'profile-table-stream-handler.ts',
+            environment: {
+                TASK_TABLE: this.props.taskTable.table.tableName,
+                PROFILE_TABLE: profileTable.tableName,
+                TRANSACTION_TABLE: this.props.transactionTable.table.tableName,
+                CARD_TABLE: this.props.cardTable.table.tableName,
+            },
+            externalModules: []
+        })
+
         this.transactionTableStream.addEventSource(new DynamoEventSource(
             this.props.transactionTable.table, {
                 startingPosition: StartingPosition.LATEST,
@@ -67,24 +80,36 @@ export class TaskAyncFunctions extends GenericAsyncFunction {
                 startingPosition: StartingPosition.LATEST,
             }))
 
+        this.profileTableStream.addEventSource(new DynamoEventSource(
+            profileTable, {
+                startingPosition: StartingPosition.LATEST,
+            }))
+
         profileTable.grantFullAccess(this.transactionTableStream.grantPrincipal)
         profileTable.grantFullAccess(this.taskTableStream.grantPrincipal)
+        profileTable.grantFullAccess(this.profileTableStream.grantPrincipal)
 
         notificationTable.grantFullAccess(this.transactionTableStream.grantPrincipal)
         notificationTable.grantFullAccess(this.taskTableStream.grantPrincipal)
 
         this.props.taskTable.table.grantFullAccess(this.transactionTableStream.grantPrincipal)
         this.props.taskTable.table.grantFullAccess(this.taskTableStream.grantPrincipal)
+        this.props.taskTable.table.grantFullAccess(this.profileTableStream.grantPrincipal)
 
         this.props.transactionTable.table.grantFullAccess(this.transactionTableStream.grantPrincipal)
         this.props.transactionTable.table.grantFullAccess(this.taskTableStream.grantPrincipal)
+        this.props.transactionTable.table.grantFullAccess(this.profileTableStream.grantPrincipal)
 
         this.props.cardTable.table.grantFullAccess(this.transactionTableStream.grantPrincipal)
         this.props.cardTable.table.grantFullAccess(this.taskTableStream.grantPrincipal)
+        this.props.cardTable.table.grantFullAccess(this.profileTableStream.grantPrincipal)
     }
 
     public getProfileTable() : ITable {
-        return Table.fromTableArn(this, 'profileTableId', config.profileTableArn)
+        return Table.fromTableAttributes(this, 'profileTableId', {
+            tableArn: config.profileTableArn,
+            tableStreamArn: config.profileTableArnStream
+        })//.fromTableArn(this, 'profileTableId', config.profileTableArn)
     }
 
     public getNotificationTable() : ITable {

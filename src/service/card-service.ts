@@ -45,6 +45,69 @@ export class CardService {
         }
     }
 
+    async createCardsForNewProfile(params: any): Promise<any> {
+        if(params?.eventName === 'INSERT' && params?.newImage){
+            let lastEvaluatedKey: any = 'FIRST'
+            while(lastEvaluatedKey){
+                lastEvaluatedKey = undefined
+                const response: any = await this.queryTask({
+                    limit: numberOfProfilesPerPage,
+                    lastEvaluatedKey: lastEvaluatedKey,
+                    userId: params?.newImage?.userId
+                })
+                if(response?.LastEvaluatedKey && response?.LastEvaluatedKey?.id){
+                    lastEvaluatedKey = response?.LastEvaluatedKey?.id
+                } else{
+                    lastEvaluatedKey = undefined
+                }
+                await this.createAndStoreCardsNewProfile({
+                    tasks: response?.Items,
+                    profile: params?.newImage
+                })
+            }
+        }
+    }
+
+    async createAndStoreCardsNewProfile(params: any): Promise<any> {
+        const itemsArray: any[] = []
+        for (const task of params.tasks) {
+            let distance : Number = 1000
+            try{
+                distance = this.calculateDistance({
+                    point1: task?.location,
+                    point2: params?.profile?.location
+                })
+            } catch (e) {
+
+            }
+            if(distance < 100){
+                itemsArray.push({
+                    PutRequest:{
+                        Item: {
+                            userId: params.profile?.userId,
+                            taskId: task?.id,
+                            distance: distance,
+                            status: 'NEW',
+                            category: task?.category,
+                        }
+                    }
+                })
+            }
+        }
+        const batchParams = {
+            RequestItems: {
+                [this.props.cardTable]: itemsArray
+            }
+        }
+        try{
+            await this.documentClient
+                .batchWrite(batchParams).promise()
+        } catch (e) {
+            console.log('ERROR in batch write')
+            console.log(e)
+        }
+    }
+
     async createAndStoreCards(params: any): Promise<any> {
         const itemsArray: any[] = []
         for (const profile of params.profiles) {
@@ -57,7 +120,6 @@ export class CardService {
             } catch (e) {
 
             }
-
             if(distance < 100){
                 itemsArray.push({
                     PutRequest:{
@@ -72,7 +134,6 @@ export class CardService {
                 })
             }
         }
-
         const batchParams = {
             RequestItems: {
                 [this.props.cardTable]: itemsArray
@@ -85,6 +146,32 @@ export class CardService {
             console.log('ERROR in batch write')
             console.log(e)
         }
+    }
+
+    async queryTask(params: any): Promise<any> {
+        let exclusiveStartKey
+        if(params?.lastEvaluatedKey){
+            exclusiveStartKey = {
+                userId: params?.lastEvaluatedKey
+            }
+        }
+
+        const response = await this.documentClient
+            .scan({
+                TableName: this.props.taskTable,
+                ProjectionExpression: 'id, userId, #location, category ',
+                FilterExpression: 'userId <> :userId and taskStatus = :taskStatus',
+                ExpressionAttributeValues : {
+                    ':userId' : params.userId,
+                    ':taskStatus': 'active'
+                },
+                ExpressionAttributeNames: {
+                    '#location': 'location'
+                },
+                Limit: params.limit,
+                ExclusiveStartKey: exclusiveStartKey
+            }).promise()
+        return response
     }
 
     async queryProfile(params: any): Promise<any> {
