@@ -36,6 +36,7 @@ export class NotificationService {
         if(params?.eventName === 'INSERT' && params?.newImage?.status === 'applied'
             && params?.newImage?.type === 'application'){
             await this.sendNotification({
+                dateTime: now.toISOString(),
                 userId: params?.newImage?.customerId,
                 notificationType: 'NEW_APPLICATION',
                 subjectId: params?.newImage?.workerId,
@@ -52,6 +53,7 @@ export class NotificationService {
         if(params?.eventName === 'INSERT' && params?.newImage?.status === 'initiated'
             && params?.newImage?.type === 'referral'){
             await this.sendNotification({
+                dateTime: now.toISOString(),
                 userId: params?.newImage?.customerId,
                 notificationType: 'NEW_REFERRAL',
                 subjectId: params?.newImage?.referrerId,
@@ -69,6 +71,7 @@ export class NotificationService {
             && params?.newImage?.status === 'applicationAccepted'
             && params?.oldImage?.status === 'applied'){
             await this.sendNotification({
+                dateTime: now.toISOString(),
                 userId: params?.newImage?.workerId,
                 notificationType: 'APPLICATION_ACCEPTED',
                 subjectId: params?.newImage?.customerId,
@@ -182,7 +185,7 @@ export class NotificationService {
                 TableName: this.props.notificationTable,
                 Item: {
                     id: uuidv4(),
-                    dateTime: params.time?.toISOString(),
+                    dateTime: params.dateTime,
                     userId: params.userId,
                     type: params.notificationType,
                     subjectId: params.subjectId,
