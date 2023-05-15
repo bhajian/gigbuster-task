@@ -29,83 +29,58 @@ export class NotificationService {
 
     async createTransactionNotification(params: any): Promise<any> {
         const now = new Date()
-
+        let task = undefined
+        if(params?.newImage?.taskId){
+            task = await this.getTask({id: params?.newImage?.taskId})
+        }
         if(params?.eventName === 'INSERT' && params?.newImage?.status === 'applied'
             && params?.newImage?.type === 'application'){
-            const userId = params?.newImage?.customerId
-
-            await this.documentClient
-                .put({
-                    TableName: this.props.notificationTable,
-                    Item: {
-                        id: uuidv4(),
-                        dateTime: now.toISOString(),
-                        userId: userId,
-                        type: 'NEW_APPLICATION',
-                        subjectId: params?.newImage?.workerId,
-                        objectId: params?.newImage?.taskId,
-                        transactionId: params?.newImage?.id,
-                    },
-                }).promise()
-            const profile = await this.getProfile({
-                userId: userId
-            })
-            await this.sendPushNotification({
-                notificationToken: profile.notificationToken,
-                title: 'New Application.',
-                body: 'Someone responded to the task you posted.'
+            await this.sendNotification({
+                userId: params?.newImage?.customerId,
+                notificationType: 'NEW_APPLICATION',
+                subjectId: params?.newImage?.workerId,
+                objectId: params?.newImage?.taskId,
+                transactionId: params?.newImage?.id,
+                notificationTitle: `New application for ${task.category}.`,
+                notificationBody: `You have received a response for the ${task.category} task you posted.`,
+                notificationData: {
+                    transactionId: params?.newImage?.id,
+                    notificationType: 'NEW_APPLICATION'
+                }
             })
         }
         if(params?.eventName === 'INSERT' && params?.newImage?.status === 'initiated'
             && params?.newImage?.type === 'referral'){
-            const userId = params?.newImage?.customerId
-
-            await this.documentClient
-                .put({
-                    TableName: this.props.notificationTable,
-                    Item: {
-                        id: uuidv4(),
-                        dateTime: now.toISOString(),
-                        userId: userId,
-                        type: 'NEW_REFERRAL',
-                        subjectId: params?.newImage?.referrerId,
-                        objectId: params?.newImage?.taskId,
-                        transactionId: params?.newImage?.id,
-                    },
-                }).promise()
-            const profile = await this.getProfile({
-                userId: userId
-            })
-            await this.sendPushNotification({
-                notificationToken: profile.notificationToken,
-                title: 'New Application.',
-                body: 'You have received a new referral for the task you posted.'
+            await this.sendNotification({
+                userId: params?.newImage?.customerId,
+                notificationType: 'NEW_REFERRAL',
+                subjectId: params?.newImage?.referrerId,
+                objectId: params?.newImage?.taskId,
+                transactionId: params?.newImage?.id,
+                notificationTitle: `New Referral for ${task.category}.`,
+                notificationBody: `You have received a new referral for ${task.category}`,
+                notificationData: {
+                    transactionId: params?.newImage?.id,
+                    notificationType: 'NEW_REFERRAL'
+                }
             })
         }
         if(params?.eventName === 'MODIFY' && params?.newImage?.type === 'application'
             && params?.newImage?.status === 'applicationAccepted'
             && params?.oldImage?.status === 'applied'){
-            const userId = params?.newImage?.workerId
-            await this.documentClient
-                .put({
-                    TableName: this.props.notificationTable,
-                    Item: {
-                        id: uuidv4(),
-                        dateTime: now.toISOString(),
-                        userId: params?.newImage?.workerId,
-                        type: 'APPLICATION_ACCEPTED',
-                        subjectId: params?.newImage?.customerId,
-                        objectId: params?.newImage?.taskId,
-                        transactionId: params?.newImage?.id,
-                    },
-                }).promise()
-            const profile = await this.getProfile({
-                userId: userId
-            })
-            await this.sendPushNotification({
-                notificationToken: profile.notificationToken,
-                title: 'Application Accepted.',
-                body: 'Your response to a task is accepted by the customer.'
+            await this.sendNotification({
+                userId: params?.newImage?.workerId,
+                notificationType: 'APPLICATION_ACCEPTED',
+                subjectId: params?.newImage?.customerId,
+                objectId: params?.newImage?.taskId,
+                transactionId: params?.newImage?.id,
+                notificationTitle: 'It is a match.',
+                notificationBody: `The customer accepted your response to the ${task.category} task.` +
+                    'You can now chat with the customer.',
+                notificationData: {
+                    transactionId: params?.newImage?.id,
+                    notificationType: 'APPLICATION_ACCEPTED'
+                }
             })
         }
         if(params?.eventName === 'MODIFY' && params?.newImage?.type === 'application'
@@ -139,46 +114,43 @@ export class NotificationService {
         }
         if(params?.eventName === 'MODIFY' &&
             params?.newImage?.lastMessage !== params?.oldImage?.lastMessage){
-            const senderId = params?.newImage?.senderId
-            const receiverId = params?.newImage?.receiverId
-            if(receiverId){
-                const profile = await this.getProfile({
-                    userId: receiverId
-                })
-                await this.sendPushNotification({
-                    notificationToken: profile.notificationToken,
-                    title: 'You have a new message.',
-                    body: 'You have a new message.',
-                    data: params?.newImage?.id,
-                })
-            }
+            await this.newMessageNotification(params?.newImage, task)
         }
     }
 
-    async createTaskNotification(params: any): Promise<any> {
-        if(params?.eventName === 'MODIFY' && params?.newImage?.taskStatus === 'inactive'
-            && params?.oldImage?.taskStatus === 'active'){
-            // const response = await this.documentClient
-            //     .query({
-            //         TableName: this.props.taskTable,
-            //         Key: {
-            //             id: params.taskId,
-            //         },
-            //     }).promise()
-            // return response.Item as TaskEntity
-
-            // await this.documentClient
-            //     .put({
-            //         TableName: this.props.notificationTable,
-            //         Item: {
-            //                 id: uuidv4(),
-            //                 dateTime: now.toISOString(),
-            //             userId: params?.newImage?.workerId,
-            //             type: 'CHAT_TERMINATED',
-            //             subjectId: params?.newImage?.customerId,
-            //             objectId: params?.newImage?.taskId,
-            //         },
-            //     }).promise()
+    async newMessageNotification(transaction: any, task: any): Promise<any> {
+        const senderId = transaction.senderId
+        const receiverId = transaction.receiverId
+        const workerId = transaction.workerId
+        const customerId = transaction.customerId
+        const referrerId = transaction.referrerId
+        const taskString = (task?.category? ' about ' + task?.category:'')
+        if(receiverId){
+            let role = 'Customer'
+            if(receiverId === customerId){
+                role = 'Customer'
+            }
+            if(receiverId === workerId){
+                role = 'Worker'
+            }
+            if(receiverId === referrerId){
+                role = 'Referral'
+            }
+            const senderProfile = await this.getProfile({
+                userId: senderId
+            })
+            const receiverProfile = await this.getProfile({
+                userId: receiverId
+            })
+            await this.sendPushNotification({
+                notificationToken: receiverProfile?.notificationToken,
+                title: `New Message For ${role}${taskString}.`,
+                body: `${senderProfile?.name}: ${transaction?.lastMessage}`,
+                data: {
+                    transactionId: transaction.id,
+                    notificationType: 'MESSAGE'
+                }
+            })
         }
     }
 
@@ -188,6 +160,17 @@ export class NotificationService {
                 TableName: this.props.profileTable,
                 Key: {
                     userId: params.userId,
+                },
+            }).promise()
+        return response.Item
+    }
+
+    async getTask(params: any): Promise<any> {
+        const response = await this.documentClient
+            .get({
+                TableName: this.props.taskTable,
+                Key: {
+                    id: params.id,
                 },
             }).promise()
         return response.Item
@@ -213,7 +196,8 @@ export class NotificationService {
         await this.sendPushNotification({
             notificationToken: profile.notificationToken,
             title: params.notificationTitle,
-            body: params.notificationBody
+            body: params.notificationBody,
+            data: params.notificationData
         })
     }
 
@@ -229,7 +213,6 @@ export class NotificationService {
             title: params.title,
             body: params.body,
             sound: {
-                // name: 'default',
                 critical: true,
                 volume: 1
             }

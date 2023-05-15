@@ -128,7 +128,7 @@ export class TaskService {
         let keyMap = new Map<string, any>()
         if (cards && cards?.length > 0) {
             for (let i = 0; i < cards.length; i++) {
-                const userId = cards[i].userId
+                const userId = cards[i].customerId
                 const taskId = cards[i].taskId
                 if(keyMap.has(userId)){
                 } else {

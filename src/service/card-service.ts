@@ -86,6 +86,7 @@ export class CardService {
                         Item: {
                             userId: params.profile?.userId,
                             taskId: task?.id,
+                            customerId: task?.userId,
                             distance: distance,
                             status: 'NEW',
                             category: task?.category,
@@ -126,6 +127,7 @@ export class CardService {
                         Item: {
                             userId: profile?.userId,
                             taskId: params?.task?.id,
+                            customerId: params?.task?.userId,
                             distance: distance,
                             status: 'NEW',
                             category: params?.task?.category,
