@@ -1,6 +1,5 @@
 import {DynamoDB} from "aws-sdk"
 import {Env} from "../lib/env"
-import {NotificationService} from "../service/notification-service"
 import {CardService} from "../service/card-service";
 
 const taskTable = Env.get('TASK_TABLE')

@@ -3,16 +3,17 @@ import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { TaskStack } from '../stack/task-stack';
 import {TaskStatefulStack} from "../stack/task-stateful-stack";
+import config from "../config/config";
 
 const app = new cdk.App();
 
 const taskStatefulStack = new TaskStatefulStack(
-    app, 'TaskStatefulStack', {
+    app, `TaskStatefulStack-${config.envName}`, {
     env: {
         account: process.env.CDK_DEFAULT_ACCOUNT,
         region: process.env.CDK_DEFAULT_REGION
     }})
-new TaskStack(app, 'TaskApiStack', {
+new TaskStack(app, `TaskApiStack-${config.envName}`, {
     taskApiStatefulStack: taskStatefulStack,
 }, {
     env: {

@@ -1,0 +1,15 @@
+{
+  "envName": "prd",
+  "account": "341450653870",
+  "region": "us-east-1",
+  "apiDomainCertificateArn": "arn:aws:acm:us-east-1:341450653870:certificate/56ddab86-5b15-4760-b5dd-8627cf729cdb",
+  "rootDomain": "gigbusters.app",
+  "apiSubdomain": "api",
+  "userPoolArn": "arn:aws:cognito-idp:us-east-1:341450653870:userpool/us-east-1_iQeMJz211",
+  "basePath": "task",
+  "authenticatedRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-prd-profileCognitoIdCognitoDe-19GUBQM3003XF",
+  "unauthenticatedRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-prd-profileCognitoIdCognitoDe-19R25XOKX2HWY",
+  "adminRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-prd-profileCognitoIdCognitoAd-1LFEFPJCSPJQI",
+  "profileTableArn": "arn:aws:dynamodb:us-east-1:341450653870:table/Profile-prd-0aaaf082a7f1",
+  "profileTableArnStream": "arn:aws:dynamodb:us-east-1:341450653870:table/Profile-prd-0aaaf082a7f1/stream/2023-05-16T00:08:22.503"
+}

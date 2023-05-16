@@ -1,22 +1,12 @@
 import {DynamoDB} from "aws-sdk"
 import {Env} from "../lib/env"
-import {NotificationService} from "../service/notification-service"
 import {CardService} from "../service/card-service";
 
 const taskTable = Env.get('TASK_TABLE')
 const transactionTable = Env.get('TRANSACTION_TABLE')
 const profileTable = Env.get('PROFILE_TABLE')
-const notificationTable = Env.get('NOTIFICATION_TABLE')
-const expoAccessToken = Env.get('EXPO_ACCESS_TOKEN')
 const cardTable = Env.get('CARD_TABLE')
 
-const notificationService = new NotificationService({
-    taskTable: taskTable,
-    notificationTable: notificationTable,
-    transactionTable: transactionTable,
-    profileTable: profileTable,
-    expoAccessToken: expoAccessToken
-})
 const cardService = new CardService({
     taskTable: taskTable,
     cardTable: cardTable,

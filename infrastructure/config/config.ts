@@ -1,5 +1,6 @@
+const env = process.env.DEPLOYMENT_ENV
+const configFile = require(`./${env}.json`)
 
-const configFile = require('./dev.json')
 interface Env {
     envName: string | undefined
     account: string | undefined
@@ -14,8 +15,6 @@ interface Env {
     adminRoleArn: string | undefined
     profileTableArn: string | undefined
     profileTableArnStream: string | undefined
-    notificationTableArn: string | undefined
-    expoNotificationAccessToken: string | undefined
 }
 
 interface AppConfig {
@@ -32,8 +31,6 @@ interface AppConfig {
     adminRoleArn: string
     profileTableArn: string
     profileTableArnStream: string
-    notificationTableArn: string
-    expoNotificationAccessToken: string
 }
 
 const getConfig = (): Env => {
@@ -51,20 +48,18 @@ const getConfig = (): Env => {
         adminRoleArn: configFile.adminRoleArn,
         profileTableArn: configFile.profileTableArn,
         profileTableArnStream: configFile.profileTableArnStream,
-        notificationTableArn: configFile.notificationTableArn,
-        expoNotificationAccessToken: configFile.expoNotificationAccessToken
     }
 };
 
 const getSanitzedConfig = (config: Env): AppConfig => {
     for (const [key, value] of Object.entries(config)) {
         if (value === undefined) {
-            throw new Error(`Missing key ${key} in config file`);
+            throw new Error(`Missing key ${key} in config file`)
         }
     }
-    return config as AppConfig;
+    return config as AppConfig
 };
 
-const sanitizedConfig = getSanitzedConfig(getConfig());
+const sanitizedConfig = getSanitzedConfig(getConfig())
 
-export default sanitizedConfig;
+export default sanitizedConfig
