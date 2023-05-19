@@ -1,5 +1,4 @@
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
-import { v4 as uuidv4 } from 'uuid'
 import Expo from 'expo-server-sdk'
 
 interface CardServiceProps{
@@ -11,7 +10,7 @@ interface CardServiceProps{
     expoAccessToken?: string
 }
 
-const numberOfProfilesPerPage = 20
+const numberofItemsPerPage = 20
 
 export class CardService {
 
@@ -21,7 +20,7 @@ export class CardService {
 
     public constructor(props: CardServiceProps){
         this.props = props
-        this.expo = new Expo({ accessToken: props.expoAccessToken })
+        // this.expo = new Expo({ accessToken: props.expoAccessToken })
     }
 
     async taskModified(params: any): Promise<any> {
@@ -34,7 +33,7 @@ export class CardService {
             while(lastEvaluatedKey){
                 lastEvaluatedKey = undefined
                 const response: any = await this.queryProfile({
-                    limit: numberOfProfilesPerPage,
+                    limit: numberofItemsPerPage,
                     lastEvaluatedKey: lastEvaluatedKey,
                     userId: params?.newImage?.userId
                 })
@@ -57,7 +56,7 @@ export class CardService {
             while(lastEvaluatedKey){
                 lastEvaluatedKey = undefined
                 const response: any = await this.queryTask({
-                    limit: numberOfProfilesPerPage,
+                    limit: numberofItemsPerPage,
                     lastEvaluatedKey: lastEvaluatedKey,
                     userId: params?.newImage?.userId
                 })
@@ -110,9 +109,9 @@ export class CardService {
             await this.documentClient
                 .batchWrite(batchParams).promise()
 
-            await this.sendNotification({
-                notificationToken: params?.profile?.notificationToken
-            })
+            // await this.sendNotification({
+            //     notificationToken: params?.profile?.notificationToken
+            // })
         } catch (e) {
             console.log('ERROR in batch write')
             console.log(e)
@@ -216,7 +215,8 @@ export class CardService {
         const response = await this.documentClient
             .scan({
                 TableName: this.props.profileTable,
-                ProjectionExpression: 'userId, #location, interestedCategories, notificationToken, lastSwipeNotificationTime',
+                ProjectionExpression: 'userId, #location, interestedCategories, ' +
+                    'notificationToken, lastSwipeNotificationTime',
                 FilterExpression: 'userId <> :userId and active = :active',
                 ExpressionAttributeValues : {
                     ':userId' : params.userId,
