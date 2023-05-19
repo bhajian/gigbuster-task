@@ -35,6 +35,7 @@ export class TaskAyncFunctions extends GenericAsyncFunction {
                 PROFILE_TABLE: profileTable.tableName,
                 TRANSACTION_TABLE: this.props.transactionTable.table.tableName,
                 CARD_TABLE: this.props.cardTable.table.tableName,
+                EXPO_ACCESS_TOKEN: config.expoNotificationAccessToken,
             },
             externalModules: []
         })
@@ -47,6 +48,7 @@ export class TaskAyncFunctions extends GenericAsyncFunction {
                 PROFILE_TABLE: profileTable.tableName,
                 TRANSACTION_TABLE: this.props.transactionTable.table.tableName,
                 CARD_TABLE: this.props.cardTable.table.tableName,
+                EXPO_ACCESS_TOKEN: config.expoNotificationAccessToken,
             },
             externalModules: []
         })

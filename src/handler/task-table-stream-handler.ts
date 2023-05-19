@@ -6,12 +6,14 @@ const taskTable = Env.get('TASK_TABLE')
 const transactionTable = Env.get('TRANSACTION_TABLE')
 const profileTable = Env.get('PROFILE_TABLE')
 const cardTable = Env.get('CARD_TABLE')
+const expoAccessToken = Env.get('EXPO_ACCESS_TOKEN')
 
 const cardService = new CardService({
     taskTable: taskTable,
     cardTable: cardTable,
     transactionTable: transactionTable,
-    profileTable: profileTable
+    profileTable: profileTable,
+    expoAccessToken: expoAccessToken
 })
 
 export async function handler(event: any) {

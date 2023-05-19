@@ -11,5 +11,6 @@
   "unauthenticatedRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-prd-profileCognitoIdCognitoDe-19R25XOKX2HWY",
   "adminRoleArn": "arn:aws:iam::341450653870:role/ProfileStatefulStack-prd-profileCognitoIdCognitoAd-1LFEFPJCSPJQI",
   "profileTableArn": "arn:aws:dynamodb:us-east-1:341450653870:table/Profile-prd-0aaaf082a7f1",
-  "profileTableArnStream": "arn:aws:dynamodb:us-east-1:341450653870:table/Profile-prd-0aaaf082a7f1/stream/2023-05-16T00:08:22.503"
+  "profileTableArnStream": "arn:aws:dynamodb:us-east-1:341450653870:table/Profile-prd-0aaaf082a7f1/stream/2023-05-16T00:08:22.503",
+  "expoNotificationAccessToken": "ztSttlTCjJMuhE664-W_X6Ivd2yGQMFG0CAozV-W"
 }
