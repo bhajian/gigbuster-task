@@ -1,5 +1,4 @@
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
-import Expo from 'expo-server-sdk'
 
 interface CardServiceProps{
     taskTable: string
@@ -7,7 +6,6 @@ interface CardServiceProps{
     profileTable: string
     cardTable: string
     notificationTable?: string
-    expoAccessToken?: string
 }
 
 const numberofItemsPerPage = 20
@@ -16,11 +14,9 @@ export class CardService {
 
     private props: CardServiceProps
     private documentClient = new DocumentClient()
-    private expo : Expo
 
     public constructor(props: CardServiceProps){
         this.props = props
-        // this.expo = new Expo({ accessToken: props.expoAccessToken })
     }
 
     async taskModified(params: any): Promise<any> {
@@ -108,10 +104,6 @@ export class CardService {
         try{
             await this.documentClient
                 .batchWrite(batchParams).promise()
-
-            // await this.sendNotification({
-            //     notificationToken: params?.profile?.notificationToken
-            // })
         } catch (e) {
             console.log('ERROR in batch write')
             console.log(e)
@@ -157,34 +149,13 @@ export class CardService {
             console.log('ERROR in batch write')
             console.log(e)
         }
-        // try{
-        //     for (const profile of params.profiles) {
-        //         const now = new Date()
-        //         const nowTime = now.getTime()
-        //         const profileTime = profile?.lastSwipeNotificationTime
-        //         if(profile?.accountType === 'WORKER'){
-        //             if(!profile?.lastSwipeNotificationTime ||
-        //                 (profileTime && (nowTime - profileTime > 43200000))){
-        //                 await this.sendNotification({
-        //                     notificationToken: profile?.notificationToken
-        //                 })
-        //                 await this.updateProfile({
-        //                     userId: profile?.userId
-        //                 })
-        //             }
-        //         }
-        //     }
-        // } catch (e) {
-        //     console.log('ERROR in sending new card notifications.')
-        //     console.log(e)
-        // }
     }
 
     async queryTask(params: any): Promise<any> {
         let exclusiveStartKey
         if(params?.lastEvaluatedKey){
             exclusiveStartKey = {
-                userId: params?.lastEvaluatedKey
+                id: params?.lastEvaluatedKey
             }
         }
         const response = await this.documentClient
@@ -271,23 +242,6 @@ export class CardService {
         }
     }
 
-    async updateProfile(params: any) {
-        const now = new Date()
-        await this.documentClient
-            .update({
-                TableName: this.props.profileTable,
-                Key: {
-                    userId: params.userId,
-                },
-                ConditionExpression: 'userId = :userId',
-                UpdateExpression: 'set lastSwipeNotificationTime=:lastSwipeNotificationTime',
-                ExpressionAttributeValues : {
-                    ':userId' : params.userId,
-                    ':lastSwipeNotificationTime': now.getTime()
-                }
-            }).promise()
-    }
-
     calculateDistance(params: any): Number
     {
         let lon1 = params.point1.longitude
@@ -313,48 +267,6 @@ export class CardService {
         // Radius of earth in kilometers. Use 3956 for miles
         let r = 6371;
         return(c * r);
-    }
-
-    async sendNotification(params: any): Promise<any> {
-        let notificationType = 'Worker/Home'
-        await this.sendPushNotification({
-            notificationToken: params.profile.notificationToken,
-            title: 'New Tasks/Jobs are Available to Swipe.',
-            body: 'There are new tasks available. You may now open the app and start swiping.',
-            data: {
-                notificationType: notificationType
-            }
-        })
-    }
-
-    async sendPushNotification(params: any): Promise<any> {
-        if (!Expo.isExpoPushToken('expo-push-token')) {
-            console.error(`expo-push-token is not a valid Expo push token`)
-        }
-        const messages = []
-        const message = {
-            to: params.notificationToken,
-            badge: 1,
-            data: { extraData: params.data },
-            title: params.title,
-            body: params.body,
-            sound: {
-                critical: true,
-                volume: 1
-            }
-        }
-        messages.push(message)
-        let chunks = this.expo.chunkPushNotifications(messages)
-        const tickets = []
-
-        for (const chunk of chunks) {
-            try {
-                const ticketChunk = await this.expo.sendPushNotificationsAsync(chunk)
-                tickets.push(...ticketChunk)
-            } catch (error) {
-                console.error(error)
-            }
-        }
     }
 
 }

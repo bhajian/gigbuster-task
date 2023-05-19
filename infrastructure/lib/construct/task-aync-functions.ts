@@ -7,7 +7,7 @@ import {GenericDynamoTable} from "../generic/GenericDynamoTable";
 import config from "../../config/config";
 import {ITable, Table} from "aws-cdk-lib/aws-dynamodb";
 
-export interface ProfileAsyncProps {
+export interface AsyncProps {
     taskTable: GenericDynamoTable,
     transactionTable: GenericDynamoTable,
     cardTable: GenericDynamoTable
@@ -16,9 +16,9 @@ export interface ProfileAsyncProps {
 export class TaskAyncFunctions extends GenericAsyncFunction {
     taskTableStream: NodejsFunction
     profileTableStream: NodejsFunction
-    props: ProfileAsyncProps
+    props: AsyncProps
 
-    public constructor(scope: Construct, id: string, props: ProfileAsyncProps) {
+    public constructor(scope: Construct, id: string, props: AsyncProps) {
         super(scope, id)
         this.props = props
         this.initializeFunctions()
@@ -56,11 +56,15 @@ export class TaskAyncFunctions extends GenericAsyncFunction {
         this.taskTableStream.addEventSource(new DynamoEventSource(
             this.props.taskTable.table, {
                 startingPosition: StartingPosition.LATEST,
+                reportBatchItemFailures: true,
+                retryAttempts: 2
             }))
 
         this.profileTableStream.addEventSource(new DynamoEventSource(
             profileTable, {
                 startingPosition: StartingPosition.LATEST,
+                reportBatchItemFailures: true,
+                retryAttempts: 2
             }))
 
         profileTable.grantFullAccess(this.taskTableStream.grantPrincipal)

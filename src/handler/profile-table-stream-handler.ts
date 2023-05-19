@@ -11,7 +11,7 @@ const cardService = new CardService({
     taskTable: taskTable,
     cardTable: cardTable,
     transactionTable: transactionTable,
-    profileTable: profileTable
+    profileTable: profileTable,
 })
 
 export async function handler(event: any) {
