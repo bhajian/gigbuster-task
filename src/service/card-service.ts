@@ -25,16 +25,17 @@ export class CardService {
 
     async createCards(params: any): Promise<any> {
         if(params?.eventName === 'INSERT' && params?.newImage?.taskStatus === 'active'){
-            let lastEvaluatedKey: any = 'FIRST'
-            while(lastEvaluatedKey){
-                lastEvaluatedKey = undefined
+            let lastEvaluatedKey
+            let firstQuery = true
+            while(firstQuery || lastEvaluatedKey){
+                firstQuery = false
                 const response: any = await this.queryProfile({
                     limit: numberofItemsPerPage,
                     lastEvaluatedKey: lastEvaluatedKey,
                     userId: params?.newImage?.userId
                 })
-                if(response?.LastEvaluatedKey && response?.LastEvaluatedKey?.userId){
-                    lastEvaluatedKey = response?.LastEvaluatedKey?.userId
+                if(response?.LastEvaluatedKey){
+                    lastEvaluatedKey = response?.LastEvaluatedKey
                 } else{
                     lastEvaluatedKey = undefined
                 }
@@ -42,22 +43,24 @@ export class CardService {
                     profiles: response?.Items,
                     task: params?.newImage
                 })
+
             }
         }
     }
 
     async createCardsForNewProfile(params: any): Promise<any> {
         if(params?.eventName === 'INSERT' && params?.newImage){
-            let lastEvaluatedKey: any = 'FIRST'
-            while(lastEvaluatedKey){
-                lastEvaluatedKey = undefined
+            let lastEvaluatedKey
+            let firstQuery = true
+            while(firstQuery || lastEvaluatedKey){
+                firstQuery = false
                 const response: any = await this.queryTask({
                     limit: numberofItemsPerPage,
                     lastEvaluatedKey: lastEvaluatedKey,
                     userId: params?.newImage?.userId
                 })
-                if(response?.LastEvaluatedKey && response?.LastEvaluatedKey?.id){
-                    lastEvaluatedKey = response?.LastEvaluatedKey?.id
+                if(response?.LastEvaluatedKey && response?.LastEvaluatedKey){
+                    lastEvaluatedKey = response?.LastEvaluatedKey
                 } else{
                     lastEvaluatedKey = undefined
                 }
@@ -152,12 +155,6 @@ export class CardService {
     }
 
     async queryTask(params: any): Promise<any> {
-        let exclusiveStartKey
-        if(params?.lastEvaluatedKey){
-            exclusiveStartKey = {
-                id: params?.lastEvaluatedKey
-            }
-        }
         const response = await this.documentClient
             .scan({
                 TableName: this.props.taskTable,
@@ -171,23 +168,16 @@ export class CardService {
                     '#location': 'location'
                 },
                 Limit: params.limit,
-                ExclusiveStartKey: exclusiveStartKey
+                ExclusiveStartKey: params?.lastEvaluatedKey
             }).promise()
         return response
     }
 
     async queryProfile(params: any): Promise<any> {
-        let exclusiveStartKey
-        if(params?.lastEvaluatedKey){
-            exclusiveStartKey = {
-                userId: params?.lastEvaluatedKey
-            }
-        }
         const response = await this.documentClient
             .scan({
                 TableName: this.props.profileTable,
-                ProjectionExpression: 'userId, #location, interestedCategories, ' +
-                    'notificationToken, lastSwipeNotificationTime',
+                ProjectionExpression: 'userId, #location, interestedCategories ',
                 FilterExpression: 'userId <> :userId and active = :active',
                 ExpressionAttributeValues : {
                     ':userId' : params.userId,
@@ -197,7 +187,7 @@ export class CardService {
                     '#location': 'location'
                 },
                 Limit: params.limit,
-                ExclusiveStartKey: exclusiveStartKey
+                ExclusiveStartKey: params?.lastEvaluatedKey
             }).promise()
         return response
     }

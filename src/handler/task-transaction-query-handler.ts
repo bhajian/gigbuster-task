@@ -38,7 +38,7 @@ export async function handler(event: APIGatewayProxyEvent, context: Context):
         const items = await service.queryTransaction({
             userId: userId,
             persona: persona,
-            limit: limit,
+            limit: (Number(limit) < 100 ? limit : 90),
             lastEvaluatedKey: lastEvaluatedKey
         })
         result.body = JSON.stringify(items)

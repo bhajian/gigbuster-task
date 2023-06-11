@@ -690,7 +690,7 @@ export class TaskService {
                         '#status': 'status'
                     },
                     ScanIndexForward: false,
-                    Limit: params.Limit,
+                    Limit: params.limit,
                     ExclusiveStartKey: params.lastEvaluatedKey
                 }).promise()
             const referrerTransactions = referrerResponse?.Items ? referrerResponse?.Items : []
@@ -713,7 +713,7 @@ export class TaskService {
                         '#status': 'status'
                     },
                     ScanIndexForward: false,
-                    Limit: params.Limit,
+                    Limit: params.limit,
                     ExclusiveStartKey: params.lastEvaluatedKey
                 }).promise()
             const transactions = response?.Items ? response?.Items : []
@@ -740,7 +740,7 @@ export class TaskService {
                         '#status': 'status'
                     },
                     ScanIndexForward: false,
-                    Limit: params.Limit,
+                    Limit: params.limit,
                     ExclusiveStartKey: params.lastEvaluatedKey
                 }).promise()
             const transactions = response?.Items ? response?.Items : []
